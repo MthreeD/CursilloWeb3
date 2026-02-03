@@ -1,0 +1,33 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+
+<div id="@Id" style="height: 300px;"></div>
+
+@code {
+    [Parameter] public string Id { get; set; } = "editor-" + Guid.NewGuid().ToString();
+    [Parameter] public string Content { get; set; } = "";
+    [Parameter] public EventCallback<string> ContentChanged { get; set; }
+
+    private DotNetObjectReference<RichTextEditor>? _objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("quillInterop.createEditor", Id, Content, _objRef);
+        }
+    }
+
+    [JSInvokable]
+    public async Task UpdateContent(string html)
+    {
+        Content = html;
+        await ContentChanged.InvokeAsync(html);
+    }
+
+    public void Dispose()
+    {
+        _objRef?.Dispose();
+    }
+}

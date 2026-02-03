@@ -1,0 +1,51 @@
+@page "/admin/content/{Section}"
+@using Microsoft.AspNetCore.Authorization
+@using CursilloWeb.Data
+@attribute [Authorize]
+@inject CursilloWeb.Services.ContentService ContentService
+@inject NavigationManager Navigation
+
+<PageTitle>Edit @Section</PageTitle>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit @Section</h2>
+        <a href="/admin" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    @if (IsLoading)
+    {
+        <p>Loading...</p>
+    }
+    else
+    {
+        <div class="mb-4">
+            <div class="alert alert-info">
+                Use the editor below to customize the @Section content.
+            </div>
+            
+            <RichTextEditor @bind-Content="HtmlContent" />
+        </div>
+
+        <button class="btn btn-primary" @onclick="SaveContent">Save Content</button>
+    }
+</div>
+
+@code {
+    [Parameter] public string Section { get; set; } = "Header";
+    
+    private string HtmlContent = "";
+    private bool IsLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HtmlContent = await ContentService.GetContentAsync(Section);
+        IsLoading = false;
+    }
+
+    private async Task SaveContent()
+    {
+        await ContentService.UpdateContentAsync(Section, HtmlContent);
+        Navigation.NavigateTo("/admin");
+    }
+}

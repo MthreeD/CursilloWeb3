@@ -1,0 +1,72 @@
+:root {
+    --primary-color: #003366;
+    /* Deep Royal Blue */
+    --secondary-color: #D4AF37;
+    /* Gold */
+    --background-color: #f9f9f9;
+    --text-color: #333;
+    --font-serif: 'Georgia', 'Playfair Display', serif;
+    --font-sans: 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: var(--font-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-serif);
+    color: var(--primary-color);
+}
+
+.site-header {
+    background-color: white;
+    /* Or use primary color */
+    border-bottom: 3px solid var(--secondary-color);
+    padding: 1rem;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.site-footer {
+    background-color: var(--primary-color);
+    color: white;
+    border-top: 3px solid var(--secondary-color);
+    padding: 2rem;
+    margin-top: 3rem;
+}
+
+.article-card {
+    position: relative;
+    /* Essential for stretched-link */
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.article-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    border-color: var(--secondary-color);
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-gold {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: darken(var(--secondary-color), 10%);
+}

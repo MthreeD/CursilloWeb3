@@ -1,0 +1,73 @@
+﻿@page "/"
+@inject CursilloWeb.Services.ArticleService ArticleService
+@using CursilloWeb.Data
+
+<PageTitle>Home - Cursillo Venice Diocese</PageTitle>
+
+<div class="row">
+    @if (Articles == null)
+    {
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!Articles.Any())
+    {
+        <div class="col-12 text-center py-5">
+            <p class="lead">No articles available at the moment.</p>
+        </div>
+    }
+    else
+    {
+        @foreach (var article in Articles)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="article-card h-100">
+                    @if (!string.IsNullOrEmpty(article.ImageUrl))
+                    {
+                        <img src="@article.ImageUrl" class="card-img-top mb-3" alt="@article.Title" style="max-height: 200px; object-fit: cover; border-radius: 4px;">
+                    }
+                    <h3 class="h4 mb-3">@article.Title</h3>
+                    <div class="text-muted small mb-3">
+                        @article.CreatedDate.ToShortDateString()
+                    </div>
+                    <div class="article-preview mb-3">
+                        @((MarkupString)GetPreview(article.Content))
+                    </div>
+                    <a href="article/@article.Id" class="btn btn-gold stretched-link">Read More</a>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Article>? Articles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Add artificial delay to see loading state if needed, or remove
+        Articles = await ArticleService.GetArticlesAsync(onlyVisible: true);
+    }
+
+    private string GetPreview(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+        // Strip HTML simplified or just take substring
+        // For now, let's just create a naive substring if it's plain text, 
+        // but since content is HTML, stripping tags is better. 
+        // We'll rely on a simple breakdown or just showing the first 100 chars of raw HTML might break layout.
+        // Better to show nothing or assume content is safe?
+        // Let's just return a placeholder or truncated text.
+        // Actually, just returning the first 150 chars of text content.
+        
+        var plainText = System.Text.RegularExpressions.Regex.Replace(content, "<.*?>", String.Empty);
+        if (plainText.Length > 150)
+        {
+            return plainText.Substring(0, 150) + "...";
+        }
+        return plainText;
+    }
+}

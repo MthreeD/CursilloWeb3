@@ -1,0 +1,69 @@
+﻿@inherits LayoutComponentBase
+@inject CursilloWeb.Services.ContentService ContentService
+
+<div class="page-container">
+    <header class="site-header d-flex justify-content-between align-items-center">
+        <div class="header-content">
+            @if (!string.IsNullOrEmpty(HeaderHtml))
+            {
+               @((MarkupString)HeaderHtml)
+            }
+            else
+            {
+                <div class="d-flex align-items-center">
+                    <!-- Placeholder Logo -->
+                    <span class="fs-3 fw-bold text-primary">Cursillo Venice Diocese</span>
+                </div>
+            }
+        </div>
+        
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasMenu" aria-controls="offcanvasMenu">
+            <span class="bi bi-list fs-4"></span>
+        </button>
+    </header>
+
+    <main class="container my-4">
+        @Body
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            @if (!string.IsNullOrEmpty(FooterHtml))
+            {
+                @((MarkupString)FooterHtml)
+            }
+            else
+            {
+                <p class="text-center mb-0">&copy; @DateTime.Now.Year - Cursillo Venice Diocese</p>
+            }
+        </div>
+    </footer>
+</div>
+
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasMenu" aria-labelledby="offcanvasMenuLabel">
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="offcanvasMenuLabel">Menu</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link text-dark" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+             <a class="nav-link text-dark" href="Account/Login">Admin Login</a>
+        </li>
+    </ul>
+  </div>
+</div>
+
+@code {
+    private string HeaderHtml = "";
+    private string FooterHtml = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        HeaderHtml = await ContentService.GetContentAsync("Header");
+        FooterHtml = await ContentService.GetContentAsync("Footer");
+    }
+}
