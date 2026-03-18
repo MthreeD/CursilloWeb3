@@ -3,10 +3,11 @@ using CursilloWeb.Data;
 
 namespace CursilloWeb.Services;
 
-public class ArticleService(ApplicationDbContext context)
+public class ArticleService(IDbContextFactory<ApplicationDbContext> contextFactory)
 {
     public async Task<List<Article>> GetArticlesAsync(bool onlyVisible = true)
     {
+        await using var context = await contextFactory.CreateDbContextAsync();
         IQueryable<Article> query = context.Articles;
         if (onlyVisible)
         {
@@ -17,23 +18,27 @@ public class ArticleService(ApplicationDbContext context)
 
     public async Task<Article?> GetArticleByIdAsync(int id)
     {
+        await using var context = await contextFactory.CreateDbContextAsync();
         return await context.Articles.FindAsync(id);
     }
 
     public async Task CreateArticleAsync(Article article)
     {
+        await using var context = await contextFactory.CreateDbContextAsync();
         context.Articles.Add(article);
         await context.SaveChangesAsync();
     }
 
     public async Task UpdateArticleAsync(Article article)
     {
+        await using var context = await contextFactory.CreateDbContextAsync();
         context.Articles.Update(article);
         await context.SaveChangesAsync();
     }
 
     public async Task DeleteArticleAsync(int id)
     {
+        await using var context = await contextFactory.CreateDbContextAsync();
         var article = await context.Articles.FindAsync(id);
         if (article != null)
         {
