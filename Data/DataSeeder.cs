@@ -17,6 +17,7 @@ public static class DataSeeder
             context.ContentBlocks.AddRange(
                 new ContentBlock
                 {
+                    Id = Guid.NewGuid(),
                     Section = "Header",
                     HtmlContent = @"<div class=""d-flex align-items-center"">
                                     <div class=""me-3"">
@@ -34,6 +35,7 @@ public static class DataSeeder
                 },
                 new ContentBlock
                 {
+                    Id = Guid.NewGuid(),
                     Section = "Footer",
                     HtmlContent = @"<div class=""row"">
                                     <div class=""col-md-6"">
@@ -58,6 +60,7 @@ public static class DataSeeder
             context.Articles.AddRange(
                 new Article
                 {
+                    Id = Guid.NewGuid(),
                     Title = "Welcome to the Cursillo Movement",
                     Content = @"<p>The Cursillo Movement is a movement of the Church which by its own Method attempts from within the Church, to give life to the essential Christian truths in the singularity, originality, and creativity of the person. In discovering their potential and accepting their limitations, they will direct their freedom with their conviction, reinforce their will with decisiveness and direct their friendship with the virtue of constancy in their day-to-day life, personally and with others.</p>
                                 <p>The Cursillo method aims at creating small groups of Christians who will evangelize their environments with the Gospel spirit. This is achieved by means of a three-day weekend (Cursillo) which provides the tools for a life of ongoing spiritual growth.</p>
@@ -69,6 +72,7 @@ public static class DataSeeder
                 },
                 new Article
                 {
+                    Id = Guid.NewGuid(),
                     Title = "Upcoming Ultreya",
                     Content = @"<p>Join us for our monthly Ultreya meeting this Saturday at 7:00 PM. It is a time for sharing, prayer, and fellowship. Ultreya is the Spanish word for 'Onward!', encouraging us to persevere in our Christian walk.</p>
                                 <p>We will have a guest speaker, Father John, who will talk about 'Living Grace in a Busy World'. Refreshments will be provided afterwards.</p>
@@ -83,6 +87,7 @@ public static class DataSeeder
                 },
                 new Article
                 {
+                    Id = Guid.NewGuid(),
                     Title = "A Message from the Spiritual Director",
                     Content = @"<p>Dear Cursillistas,</p>
                                 <p>As we enter this new season, let us reflect on the importance of piety, study, and action in our daily lives. These three legs of the tripod are essential for maintaining a balanced Christian life.</p>
@@ -97,6 +102,7 @@ public static class DataSeeder
                 },
                 new Article
                 {
+                    Id = Guid.NewGuid(),
                     Title = "School of Leaders",
                     Content = @"<p>The School of Leaders is where we deepen our understanding of the Cursillo mentality and method. It is open to all Cursillistas who wish to serve the movement.</p>
                                 <p>Next session will cover the 'Technique of the Pre-Cursillo'. Understanding how to identify and prepare candidates is crucial for a successful weekend.</p>",
