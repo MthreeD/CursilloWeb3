@@ -1,13 +1,7 @@
 ﻿@page "/auth"
 
-@using Microsoft.AspNetCore.Authorization
-
-@attribute [Authorize]
-
 <PageTitle>Auth</PageTitle>
 
-<h1>You are authenticated</h1>
+<h1>Authentication Removed</h1>
 
-<AuthorizeView>
-    Hello @context.User.Identity?.Name!
-</AuthorizeView>
+<p>Authentication and authorization features have been removed from this application.</p>
