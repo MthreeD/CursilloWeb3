@@ -4,7 +4,7 @@ namespace CursilloWeb.Data;
 
 public class ContentBlock
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
     
     [Required]
     public string Section { get; set; } = string.Empty; // e.g. "Header", "Footer"

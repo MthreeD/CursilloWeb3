@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace CursilloWeb.Migrations
+namespace CursilloWeb.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -15,8 +15,7 @@ namespace CursilloWeb.Migrations
                 name: "Articles",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -72,8 +71,7 @@ namespace CursilloWeb.Migrations
                 name: "ContentBlocks",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Section = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     HtmlContent = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false)

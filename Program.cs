@@ -1,21 +1,29 @@
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Components;
 using CursilloWeb.Components.Account;
 using CursilloWeb.Data;
+using CursilloWeb.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddDevExpressBlazor();
+
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<CursilloWeb.Services.ArticleService>();
 builder.Services.AddScoped<CursilloWeb.Services.ContentService>();
+builder.Services.AddScoped<CircuitHandler, ShutdownCircuitHandler>();
 
 builder.Services.AddAuthentication(options =>
     {

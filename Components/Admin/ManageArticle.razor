@@ -1,17 +1,17 @@
 @page "/admin/article/new"
-@page "/admin/article/{Id:int}"
+@page "/admin/article/{Id:guid}"
 @using Microsoft.AspNetCore.Authorization
 @using CursilloWeb.Data
 @attribute [Authorize]
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 
-<PageTitle>@(Id == 0 ? "New Article" : "Edit Article")</PageTitle>
+<PageTitle>@(Id == null ? "New Article" : "Edit Article")</PageTitle>
 
 <div class="container">
     <div class="row align-items-center mb-4">
         <div class="col">
-            <h2>@(Id == 0 ? "Create Article" : "Edit Article")</h2>
+            <h2>@(Id == null ? "Create Article" : "Edit Article")</h2>
         </div>
         <div class="col-auto">
              <a href="/admin" class="btn btn-outline-secondary">Cancel</a>
@@ -54,19 +54,19 @@
 </div>
 
 @code {
-    [Parameter] public int Id { get; set; }
+    [Parameter] public Guid? Id { get; set; }
 
     private Article? ArticleModel;
 
     protected override async Task OnInitializedAsync()
     {
-        if (Id == 0)
+        if (Id == null)
         {
             ArticleModel = new Article();
         }
         else
         {
-            ArticleModel = await ArticleService.GetArticleByIdAsync(Id);
+            ArticleModel = await ArticleService.GetArticleByIdAsync(Id.Value);
             if (ArticleModel == null)
             {
                 Navigation.NavigateTo("/admin");
@@ -78,7 +78,7 @@
     {
         if (ArticleModel == null) return;
 
-        if (Id == 0)
+        if (Id == null)
         {
             await ArticleService.CreateArticleAsync(ArticleModel);
         }

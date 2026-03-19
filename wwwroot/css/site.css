@@ -30,7 +30,9 @@ h6 {
     /* Or use primary color */
     border-bottom: 3px solid var(--secondary-color);
     padding: 1rem;
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 

@@ -1,0 +1,53 @@
+@using DevExpress.Blazor
+
+<DxButton id="hamburger"
+          RenderStyle="ButtonRenderStyle.Primary"
+          RenderStyleMode="ButtonRenderStyleMode.Outline"
+          IconCssClass="bi bi-list fs-4"
+          Click="@(() => isFlyoutOpen = !isFlyoutOpen)" />
+
+<DxFlyout @bind-IsOpen="@isFlyoutOpen"
+          PositionTarget="#hamburger"
+          Placement="FlyoutPlacement.BottomEnd"
+          Width="300px">
+    <BodyTemplate>
+        <div class="p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Navigation Menu</h5>
+                <DxButton RenderStyle="ButtonRenderStyle.Danger"
+                          RenderStyleMode="ButtonRenderStyleMode.Contained"
+                          IconCssClass="bi bi-x-lg"
+                          Click="@(() => isFlyoutOpen = false)" />
+            </div>
+            <div class="d-flex flex-column gap-2 mb-3">
+                <DxButton NavigateUrl="/" 
+                          RenderStyle="ButtonRenderStyle.Secondary"
+                          RenderStyleMode="ButtonRenderStyleMode.Text"
+                          IconCssClass="bi bi-house" 
+                          Text="Home" 
+                          CssClass="text-start justify-content-start" />
+
+                <DxButton NavigateUrl="Account/Login" 
+                          RenderStyle="ButtonRenderStyle.Secondary"
+                          RenderStyleMode="ButtonRenderStyleMode.Text"
+                          IconCssClass="bi bi-key" 
+                          Text="Admin Login" 
+                          CssClass="text-start justify-content-start" />
+            </div>
+
+            <DxAccordion ExpandMode="AccordionExpandMode.SingleOrNone">
+                <Items>
+                    <DxAccordionItem Text="Theme Switcher">
+                        <ContentTemplate Context="themeContext">
+                            <ThemeSwitcher />
+                        </ContentTemplate>
+                    </DxAccordionItem>
+                </Items>
+            </DxAccordion>
+        </div>
+    </BodyTemplate>
+</DxFlyout>
+
+@code {
+    private bool isFlyoutOpen = false;
+}

@@ -1,4 +1,4 @@
-@page "/article/{Id:int}"
+@page "/article/{Id:guid}"
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 @using CursilloWeb.Data
@@ -50,7 +50,7 @@
 
 @code {
     [Parameter]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     private Article? Article;
     private bool IsLoading = true;

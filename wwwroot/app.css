@@ -58,3 +58,12 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* Fix for oversized DevExpress SVG icons in purple themes */
+.dxbl-accordion .dxbl-accordion-expand-icon > svg,
+.dxbl-accordion .dxbl-accordion-item-header button > svg,
+.dxbl-spin-edit .dxbl-btn > svg,
+.dxbl-spin-edit button > svg {
+    max-width: 1rem !important;
+    max-height: 1rem !important;
+}

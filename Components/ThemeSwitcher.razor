@@ -1,0 +1,21 @@
+@using DevExpress.Blazor
+@inject IThemeChangeService ThemeChangeService
+
+<div class="px-3 py-2">
+    <label class="form-label">Select Theme</label>
+    <DxComboBox Data="@Themes"
+                Value="@SelectedTheme"
+                ValueChanged="@((ITheme theme) => OnThemeChanged(theme))"
+                TextFieldName="Name" />
+</div>
+
+@code {
+    private List<ITheme> Themes = new() { DevExpress.Blazor.Themes.BlazingBerry, DevExpress.Blazor.Themes.BlazingDark, DevExpress.Blazor.Themes.Purple, DevExpress.Blazor.Themes.OfficeWhite };
+    private ITheme SelectedTheme = DevExpress.Blazor.Themes.BlazingBerry;
+
+    private async Task OnThemeChanged(ITheme theme)
+    {
+        SelectedTheme = theme;
+        await ThemeChangeService.SetTheme(theme);
+    }
+}

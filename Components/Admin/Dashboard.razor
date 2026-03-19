@@ -91,7 +91,7 @@ else
         Articles = await ArticleService.GetArticlesAsync(onlyVisible: false);
     }
 
-    private async Task DeleteArticle(int id)
+    private async Task DeleteArticle(Guid id)
     {
         if (await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this article?"))
         {

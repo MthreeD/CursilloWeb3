@@ -9,10 +9,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace CursilloWeb.Migrations
+namespace CursilloWeb.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260318165842_InitialCreate")]
+    [Migration("20260319080759_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -93,11 +93,9 @@ namespace CursilloWeb.Migrations
 
             modelBuilder.Entity("CursilloWeb.Data.Article", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -126,11 +124,9 @@ namespace CursilloWeb.Migrations
 
             modelBuilder.Entity("CursilloWeb.Data.ContentBlock", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("HtmlContent")
                         .IsRequired()

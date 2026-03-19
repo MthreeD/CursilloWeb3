@@ -16,7 +16,7 @@ public class ArticleService(IDbContextFactory<ApplicationDbContext> contextFacto
         return await query.OrderBy(a => a.Order).ThenByDescending(a => a.CreatedDate).ToListAsync();
     }
 
-    public async Task<Article?> GetArticleByIdAsync(int id)
+    public async Task<Article?> GetArticleByIdAsync(Guid id)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
         return await context.Articles.FindAsync(id);
@@ -36,7 +36,7 @@ public class ArticleService(IDbContextFactory<ApplicationDbContext> contextFacto
         await context.SaveChangesAsync();
     }
 
-    public async Task DeleteArticleAsync(int id)
+    public async Task DeleteArticleAsync(Guid id)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
         var article = await context.Articles.FindAsync(id);
