@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+@inject CursilloWeb.Services.ThemeState ThemeState
 
 <head>
     <meta charset="utf-8" />
@@ -7,7 +8,7 @@
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
-    @DxResourceManager.RegisterTheme(DevExpress.Blazor.Themes.BlazingBerry)
+    @DxResourceManager.RegisterTheme(ThemeState.SelectedTheme)
     @DxResourceManager.RegisterScripts()
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="css/site.css" />

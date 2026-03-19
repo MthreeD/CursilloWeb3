@@ -107,5 +107,17 @@ public static class DataSeeder
             );
             await context.SaveChangesAsync();
         }
+
+        var userManager = scope.ServiceProvider.GetRequiredService<Microsoft.AspNetCore.Identity.UserManager<ApplicationUser>>();
+        if (await userManager.FindByNameAsync("Admin") == null)
+        {
+            var adminUser = new ApplicationUser
+            {
+                UserName = "Admin",
+                Email = "admin@local.test",
+                EmailConfirmed = true
+            };
+            await userManager.CreateAsync(adminUser, ""); // Blank password
+        }
     }
 }

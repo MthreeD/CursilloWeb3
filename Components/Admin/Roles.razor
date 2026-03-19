@@ -1,0 +1,29 @@
+@page "/admin/roles"
+@rendermode InteractiveServer
+@using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@using DevExpress.Blazor
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<h3>Manage Roles</h3>
+
+<DxGrid Data="@RolesList"
+        PageSize="10"
+        KeyFieldName="ID"
+        EditMode="GridEditMode.EditRow">
+    <Columns>
+        <DxGridDataColumn FieldName="Name" Caption="Role Name" />
+        <DxGridDataColumn FieldName="IsAdministrative" Caption="Is Administrative" />
+    </Columns>
+</DxGrid>
+
+@code {
+    private List<PermissionPolicyRole> RolesList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        RolesList = await context.PermissionPolicyRoles.ToListAsync();
+    }
+}

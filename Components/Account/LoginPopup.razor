@@ -1,0 +1,71 @@
+@using DevExpress.Blazor
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using CursilloWeb.Data
+@inject SignInManager<ApplicationUser> SignInManager
+@inject NavigationManager NavigationManager
+
+<DxPopup @bind-Visible="IsOpen"
+         HeaderText="Log In"
+         CloseOnEscape="true"
+         CloseOnOutsideClick="false"
+         ShowCloseButton="true"
+         MinHeight="600px"
+         Width="700px"
+         Shown="OnPopupShown">
+    <BodyTemplate>
+        @if (HasError)
+        {
+            <div class="alert alert-danger text-center">Invalid login attempt.</div>
+        }
+        <form action="/Account/PopupLogin" method="post" data-enhance="false" class="d-flex flex-column h-100 justify-content-center pt-5 pb-5">
+            <AntiforgeryToken />
+
+            <div class="mb-3 w-75 mx-auto">
+                <label class="form-label">Email / User Name</label>
+                <!-- the autofocus attribute ensures the username is focused when opened if browser allows. For DxPopup we manually focus if needed but native autofocus mostly works -->
+                <input type="text" name="username" class="form-control" placeholder="Admin" value="Admin" id="userNameInput" autofocus />
+            </div>
+
+            <div class="mb-3 w-75 mx-auto">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" placeholder="No Password" value="" />
+            </div>
+
+            <input type="hidden" name="returnUrl" value="/" />
+
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <DxButton Text="Cancel" RenderStyle="ButtonRenderStyle.Secondary" Click="@(() => IsOpen = false)" />
+                <button type="submit" class="btn btn-primary d-flex align-items-center gap-1">Log In</button>
+            </div>
+        </form>
+    </BodyTemplate>
+</DxPopup>
+
+@code {
+    private bool isOpen;
+
+    [Parameter]
+    public bool IsOpen 
+    { 
+        get => isOpen; 
+        set
+        {
+            if (isOpen != value)
+            {
+                isOpen = value;
+                IsOpenChanged.InvokeAsync(value);
+            }
+        }
+    }
+
+    [Parameter] public EventCallback<bool> IsOpenChanged { get; set; }
+
+    [Parameter]
+    public bool HasError { get; set; }
+
+    private async Task OnPopupShown()
+    {
+        // Add JS focus call here if required later
+    }
+}

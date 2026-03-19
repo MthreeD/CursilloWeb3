@@ -1,0 +1,29 @@
+@page "/admin/users"
+@rendermode InteractiveServer
+@using DevExpress.Persistent.BaseImpl.EF.PermissionPolicy
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@using DevExpress.Blazor
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+<h3>Manage Users</h3>
+
+<DxGrid Data="@UsersList"
+        PageSize="10"
+        KeyFieldName="ID"
+        EditMode="GridEditMode.EditRow">
+    <Columns>
+        <DxGridDataColumn FieldName="UserName" Caption="User Name" />
+        <DxGridDataColumn FieldName="IsActive" Caption="Is Active" />
+    </Columns>
+</DxGrid>
+
+@code {
+    private List<PermissionPolicyUser> UsersList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        UsersList = await context.PermissionPolicyUsers.ToListAsync();
+    }
+}

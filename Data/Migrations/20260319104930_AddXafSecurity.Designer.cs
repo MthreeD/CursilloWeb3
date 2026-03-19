@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CursilloWeb.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260319080759_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260319104930_AddXafSecurity")]
+    partial class AddXafSecurity
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -142,6 +142,201 @@ namespace CursilloWeb.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ContentBlocks");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyActionPermissionObject", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("RoleID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("RoleID");
+
+                    b.ToTable("PermissionPolicyActionPermissionObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyMemberPermissionsObject", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Criteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Members")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ReadState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TypePermissionObjectID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("WriteState")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("TypePermissionObjectID");
+
+                    b.ToTable("PermissionPolicyMemberPermissionsObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyNavigationPermissionObject", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ItemPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("NavigateState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RoleID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetTypeFullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("RoleID");
+
+                    b.ToTable("PermissionPolicyNavigationPermissionObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyObjectPermissionsObject", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Criteria")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("DeleteState")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NavigateState")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReadState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("TypePermissionObjectID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("WriteState")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("TypePermissionObjectID");
+
+                    b.ToTable("PermissionPolicyObjectPermissionsObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("CanEditModel")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(34)
+                        .HasColumnType("nvarchar(34)");
+
+                    b.Property<bool>("IsAdministrative")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsAllowPermissionPriority")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PermissionPolicy")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("PermissionPolicyRoleBase");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("PermissionPolicyRoleBase");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyTypePermissionObject", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int?>("CreateState")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DeleteState")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("NavigateState")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ReadState")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("RoleID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("TargetTypeFullName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("WriteState")
+                        .HasColumnType("int");
+
+                    b.HasKey("ID");
+
+                    b.HasIndex("RoleID");
+
+                    b.ToTable("PermissionPolicyTypePermissionObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyUser", b =>
+                {
+                    b.Property<Guid>("ID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("ChangePasswordOnFirstLogon")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("StoredPassword")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("UserName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("ID");
+
+                    b.ToTable("PermissionPolicyUsers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -298,6 +493,73 @@ namespace CursilloWeb.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("PermissionPolicyRolePermissionPolicyUser", b =>
+                {
+                    b.Property<Guid>("RolesID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UsersID")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("RolesID", "UsersID");
+
+                    b.HasIndex("UsersID");
+
+                    b.ToTable("PermissionPolicyUserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRole", b =>
+                {
+                    b.HasBaseType("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase");
+
+                    b.HasDiscriminator().HasValue("PermissionPolicyRole");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyActionPermissionObject", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase", "Role")
+                        .WithMany("ActionPermissions")
+                        .HasForeignKey("RoleID");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyMemberPermissionsObject", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyTypePermissionObject", "TypePermissionObject")
+                        .WithMany("MemberPermissions")
+                        .HasForeignKey("TypePermissionObjectID");
+
+                    b.Navigation("TypePermissionObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyNavigationPermissionObject", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase", "Role")
+                        .WithMany("NavigationPermissions")
+                        .HasForeignKey("RoleID");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyObjectPermissionsObject", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyTypePermissionObject", "TypePermissionObject")
+                        .WithMany("ObjectPermissions")
+                        .HasForeignKey("TypePermissionObjectID");
+
+                    b.Navigation("TypePermissionObject");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyTypePermissionObject", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase", "Role")
+                        .WithMany("TypePermissions")
+                        .HasForeignKey("RoleID");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -398,6 +660,37 @@ namespace CursilloWeb.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("PermissionPolicyRolePermissionPolicyUser", b =>
+                {
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRole", null)
+                        .WithMany()
+                        .HasForeignKey("RolesID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyUser", null)
+                        .WithMany()
+                        .HasForeignKey("UsersID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyRoleBase", b =>
+                {
+                    b.Navigation("ActionPermissions");
+
+                    b.Navigation("NavigationPermissions");
+
+                    b.Navigation("TypePermissions");
+                });
+
+            modelBuilder.Entity("DevExpress.Persistent.BaseImpl.EF.PermissionPolicy.PermissionPolicyTypePermissionObject", b =>
+                {
+                    b.Navigation("MemberPermissions");
+
+                    b.Navigation("ObjectPermissions");
                 });
 #pragma warning restore 612, 618
         }

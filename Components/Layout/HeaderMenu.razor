@@ -1,4 +1,6 @@
 @using DevExpress.Blazor
+@inject NavigationManager NavigationManager
+@implements IDisposable
 
 <DxButton id="hamburger"
           RenderStyle="ButtonRenderStyle.Primary"
@@ -26,13 +28,30 @@
                           IconCssClass="bi bi-house" 
                           Text="Home" 
                           CssClass="text-start justify-content-start" />
-
-                <DxButton NavigateUrl="Account/Login" 
-                          RenderStyle="ButtonRenderStyle.Secondary"
-                          RenderStyleMode="ButtonRenderStyleMode.Text"
-                          IconCssClass="bi bi-key" 
-                          Text="Admin Login" 
-                          CssClass="text-start justify-content-start" />
+                <AuthorizeView>
+                    <Authorized Context="authContext">
+                        <DxButton NavigateUrl="admin/users" 
+                                  RenderStyle="ButtonRenderStyle.Secondary"
+                                  RenderStyleMode="ButtonRenderStyleMode.Text"
+                                  IconCssClass="bi bi-people" 
+                                  Text="Users" 
+                                  CssClass="text-start justify-content-start" />
+                        <DxButton NavigateUrl="admin/roles" 
+                                  RenderStyle="ButtonRenderStyle.Secondary"
+                                  RenderStyleMode="ButtonRenderStyleMode.Text"
+                                  IconCssClass="bi bi-shield-lock" 
+                                  Text="Roles" 
+                                  CssClass="text-start justify-content-start" />
+                    </Authorized>
+                    <NotAuthorized Context="authContext">
+                        <DxButton RenderStyle="ButtonRenderStyle.Secondary"
+                                  RenderStyleMode="ButtonRenderStyleMode.Text"
+                                  IconCssClass="bi bi-key" 
+                                  Text="Log In" 
+                                  CssClass="text-start justify-content-start"
+                                  Click="@(() => { isLoginOpen = true; isFlyoutOpen = false; })" />
+                    </NotAuthorized>
+                </AuthorizeView>
             </div>
 
             <DxAccordion ExpandMode="AccordionExpandMode.SingleOrNone">
@@ -48,6 +67,39 @@
     </BodyTemplate>
 </DxFlyout>
 
+<CursilloWeb.Components.Account.LoginPopup @bind-IsOpen="isLoginOpen" HasError="@hasLoginError" />
+
 @code {
+    [SupplyParameterFromQuery]
+    [Parameter]
+    public bool LoginFailed { get; set; }
+
     private bool isFlyoutOpen = false;
+    private bool isLoginOpen = false;
+    private bool hasLoginError = false;
+
+    protected override void OnInitialized()
+    {
+        if (LoginFailed)
+        {
+            isLoginOpen = true;
+            hasLoginError = true;
+        }
+
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        if (isFlyoutOpen)
+        {
+            isFlyoutOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }
