@@ -2,6 +2,7 @@
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 @using CursilloWeb.Data
+@using DevExpress.Blazor
 
 <PageTitle>@(Article?.Title ?? "Article") - Cursillo</PageTitle>
 
@@ -9,42 +10,51 @@
     @if (IsLoading)
     {
         <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
+            <DxLoadingPanel Visible="true" />
         </div>
     }
     else if (Article == null)
     {
-        <div class="alert alert-warning">
+        <DxAlert ShowIcon="true" Title="Article Not Found" CssClass="my-4">
             Article not found. <a href="/">Return to Home</a>
-        </div>
+        </DxAlert>
     }
     else
     {
-        <article class="bg-white p-4 p-md-5 rounded shadow-sm border">
-            <header class="mb-4">
-                <h1 class="display-4 text-primary">@Article.Title</h1>
-                <div class="text-muted">
-                    <i class="bi bi-calendar"></i> @Article.CreatedDate.ToLongDateString()
-                </div>
-            </header>
-            
-            @if (!string.IsNullOrEmpty(Article.ImageUrl))
-            {
-                <div class="mb-4 text-center">
-                    <img src="@Article.ImageUrl" class="img-fluid rounded" style="max-height: 500px;" alt="@Article.Title" />
-                </div>
-            }
+        <DxCard CssClass="my-4">
+            <HeaderTemplate>
+                <DxCardHeader>
+                    <h1 class="display-4 text-primary mb-3">@Article.Title</h1>
+                    <div class="text-muted">
+                        <DxIcon IconName="bi bi-calendar" CssClass="me-2" /> @Article.CreatedDate.ToLongDateString()
+                    </div>
+                </DxCardHeader>
+            </HeaderTemplate>
+            <BodyTemplate>
+                @if (!string.IsNullOrEmpty(Article.ImageUrl))
+                {
+                    <div class="mb-4 text-center">
+                        <DxImage Source="@Article.ImageUrl" 
+                                 AlternateText="@Article.Title" 
+                                 CssClass="img-fluid rounded" 
+                                 style="max-height: 500px;" />
+                    </div>
+                }
 
-            <div class="article-content fs-5" style="line-height: 1.8;">
-                @((MarkupString)Article.Content)
-            </div>
+                <div class="article-content fs-5" style="line-height: 1.8;">
+                    @((MarkupString)Article.Content)
+                </div>
 
-            <hr class="my-5" />
-            
-            <div class="text-center">
-                <a href="/" class="btn btn-outline-primary">Back to Home</a>
-            </div>
-        </article>
+                <hr class="my-5" />
+
+                <div class="text-center">
+                    <DxButton Text="Back to Home" 
+                              RenderStyle="ButtonRenderStyle.Secondary" 
+                              Click="@(() => Navigation.NavigateTo("/"))" 
+                              IconCssClass="bi bi-arrow-left" />
+                </div>
+            </BodyTemplate>
+        </DxCard>
     }
 </div>
 

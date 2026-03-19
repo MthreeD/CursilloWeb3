@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Components;
 using CursilloWeb.Data;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+builder.Services.AddDevExpressBlazor();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

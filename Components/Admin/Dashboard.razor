@@ -1,6 +1,7 @@
 @page "/admin"
 @using Microsoft.AspNetCore.Authorization
 @using CursilloWeb.Data
+@using DevExpress.Blazor
 @attribute [Authorize]
 @inject CursilloWeb.Services.ArticleService ArticleService
 
@@ -11,22 +12,32 @@
         <h1>Admin Dashboard</h1>
     </div>
     <div class="col-auto">
-        <a href="admin/article/new" class="btn btn-primary">
-            <i class="bi bi-plus-lg"></i> New Article
-        </a>
+        <DxButton Text="New Article" 
+                  IconCssClass="bi bi-plus-lg" 
+                  RenderStyle="ButtonRenderStyle.Primary"
+                  Click="@(() => Navigation.NavigateTo("admin/article/new"))" />
     </div>
 </div>
 
 <div class="row mb-4">
     <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Site Content</h5>
+        <DxCard>
+            <HeaderTemplate>
+                <DxCardHeader>
+                    <h5 class="card-title">Site Content</h5>
+                </DxCardHeader>
+            </HeaderTemplate>
+            <BodyTemplate>
                 <p>Manage global sections like Header and Footer.</p>
-                <a href="admin/content/Header" class="btn btn-outline-secondary">Edit Header</a>
-                <a href="admin/content/Footer" class="btn btn-outline-secondary">Edit Footer</a>
-            </div>
-        </div>
+                <DxButton Text="Edit Header" 
+                          RenderStyle="ButtonRenderStyle.Secondary" 
+                          Click="@(() => Navigation.NavigateTo("admin/content/Header"))"
+                          CssClass="me-2" />
+                <DxButton Text="Edit Footer" 
+                          RenderStyle="ButtonRenderStyle.Secondary" 
+                          Click="@(() => Navigation.NavigateTo("admin/content/Footer"))" />
+            </BodyTemplate>
+        </DxCard>
     </div>
     <div class="col-md-6">
          <!-- Placeholder for other admin tasks -->
@@ -37,45 +48,56 @@
 
 @if (Articles == null)
 {
-    <p>Loading...</p>
+    <DxLoadingPanel Visible="true" />
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-striped table-hover">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Date</th>
-                    <th>Visible</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var article in Articles)
-                {
-                    <tr>
-                        <td>@article.Title</td>
-                        <td>@article.CreatedDate.ToShortDateString()</td>
-                        <td>
-                            @if (article.IsVisible)
-                            {
-                                <span class="badge bg-success">Visible</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Hidden</span>
-                            }
-                        </td>
-                        <td>
-                            <a href="admin/article/@article.Id" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteArticle(article.Id)">Delete</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <DxGrid Data="@Articles" 
+            CssClass="my-grid"
+            PageSize="10"
+            ShowPager="true"
+            PagerNavigationMode="PagerNavigationMode.NumericButtons"
+            PagerSwitchToInputBoxButtonCount="5"
+            EditMode="GridEditMode.PopupEditForm">
+        <Columns>
+            <DxGridDataColumn FieldName="Title" Caption="Title" />
+            <DxGridDataColumn FieldName="CreatedDate" Caption="Date" DisplayFormat="{0:d}" />
+            <DxGridDataColumn FieldName="IsVisible" Caption="Visible">
+                <CellDisplayTemplate>
+                    @{
+                        var article = (Article)context.DataItem;
+                        if (article.IsVisible)
+                        {
+                            <DxBadge BackgroundColor="green" Text="Visible" />
+                        }
+                        else
+                        {
+                            <DxBadge BackgroundColor="gray" Text="Hidden" />
+                        }
+                    }
+                </CellDisplayTemplate>
+            </DxGridDataColumn>
+            <DxGridCommandColumn Width="200px">
+                <HeaderCaptionTemplate>Actions</HeaderCaptionTemplate>
+                <CellDisplayTemplate>
+                    @{
+                        var article = (Article)context.DataItem;
+                        <DxButton Text="Edit" 
+                                  IconCssClass="bi bi-pencil" 
+                                  RenderStyle="ButtonRenderStyle.Primary" 
+                                  RenderStyleMode="ButtonRenderStyleMode.Outline"
+                                  Click="@(() => Navigation.NavigateTo($"admin/article/{article.Id}"))"
+                                  CssClass="me-2" />
+                        <DxButton Text="Delete" 
+                                  IconCssClass="bi bi-trash" 
+                                  RenderStyle="ButtonRenderStyle.Danger" 
+                                  RenderStyleMode="ButtonRenderStyleMode.Outline"
+                                  Click="@(() => DeleteArticle(article.Id))" />
+                    }
+                </CellDisplayTemplate>
+            </DxGridCommandColumn>
+        </Columns>
+    </DxGrid>
 }
 
 @code {
@@ -99,6 +121,7 @@ else
             await LoadArticles();
         }
     }
-    
-    [Inject] IJSRuntime JSRuntime { get; set; }
+
+    [Inject] public required IJSRuntime JSRuntime { get; set; }
+    [Inject] public required NavigationManager Navigation { get; set; }
 }
