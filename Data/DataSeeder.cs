@@ -1,4 +1,5 @@
 using CursilloWeb.Data;
+using CursilloWeb.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace CursilloWeb.Data;
@@ -113,5 +114,9 @@ public static class DataSeeder
             );
             await context.SaveChangesAsync();
         }
+
+        // Convert existing HTML content to RichText format
+        var contentService = scope.ServiceProvider.GetRequiredService<ContentService>();
+        await contentService.ConvertHtmlToRichTextAsync();
     }
 }

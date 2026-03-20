@@ -1,4 +1,5 @@
 @page "/article/{Id:guid}"
+@rendermode InteractiveServer
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 @using CursilloWeb.Data
@@ -50,7 +51,7 @@
                 <div class="text-center">
                     <DxButton Text="Back to Home" 
                               RenderStyle="ButtonRenderStyle.Secondary" 
-                              Click="@(() => Navigation.NavigateTo("/"))" 
+                              NavigateUrl="/" 
                               IconCssClass="bi bi-arrow-left" />
                 </div>
             </BodyTemplate>

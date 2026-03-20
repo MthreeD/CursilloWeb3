@@ -1,8 +1,9 @@
 @page "/admin/article/new"
 @page "/admin/article/{Id:guid}"
-@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@* @using Microsoft.AspNetCore.Authorization *@
 @using CursilloWeb.Data
-@attribute [Authorize]
+@* @attribute [Authorize] *@
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 
@@ -45,7 +46,21 @@
 
             <div class="mb-3">
                 <label class="form-label">Content</label>
-                <RichTextEditor @bind-Content="ArticleModel.Content" />
+                <DxHtmlEditor @bind-Markup="ArticleModel.Content" Height="400px">
+                    <DxHtmlEditorToolbar>
+                        <DxHtmlEditorUndo />
+                        <DxHtmlEditorRedo />
+                        <DxHtmlEditorSeparator />
+                        <DxHtmlEditorBold />
+                        <DxHtmlEditorItalic />
+                        <DxHtmlEditorUnderline />
+                        <DxHtmlEditorStrikethrough />
+                        <DxHtmlEditorSeparator />
+                        <DxHtmlEditorList Checkboxes="true" />
+                        <DxHtmlEditorList />
+                        <DxHtmlEditorAlignment />
+                    </DxHtmlEditorToolbar>
+                </DxHtmlEditor>
             </div>
 
             <button type="submit" class="btn btn-primary">Save Article</button>

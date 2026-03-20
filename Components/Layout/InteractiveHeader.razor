@@ -1,14 +1,8 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
+@implements IDisposable
 
 <header id="main-site-header" class="site-header d-flex justify-content-between align-items-center position-relative">
-    <DxButton id="hamburger-btn"
-              IconCssClass="bi bi-list fs-4" 
-              RenderStyle="ButtonRenderStyle.Primary" 
-              RenderStyleMode="ButtonRenderStyleMode.Outline"
-              CssClass="position-absolute"
-              style="top: 5px; right: 5px; z-index: 1050;"
-              Click="@(() => MenuVisible = !MenuVisible)" />
     <div class="header-content">
         @if (!string.IsNullOrEmpty(HeaderHtml))
         {
@@ -22,65 +16,46 @@
             </div>
         }
     </div>
+
+    <!-- Hamburger menu button positioned 10px from right, vertically centered, on top -->
+    <div id="hamburger-menu-btn"
+         class="position-absolute"
+         style="right: 10px; top: 50%; transform: translateY(-50%); z-index: 1050;">
+        <DxButton IconCssClass="bi bi-list"
+                  RenderStyle="ButtonRenderStyle.Secondary"
+                  Click="ToggleFlyout" />
+    </div>
 </header>
 
-<DxFlyout @bind-IsOpen="MenuVisible" 
-          PositionTarget="#hamburger-btn"
-          Position="FlyoutPosition.LeftStart"
-          CloseOnOutsideClick="true"
-          Width="300px">
-    <HeaderTemplate>
-        <div class="d-flex justify-content-between align-items-center p-3">
-            <h5 class="mb-0">Menu</h5>
-            <DxButton IconCssClass="bi bi-x-lg" 
-                      RenderStyle="ButtonRenderStyle.Light"
-                      Click="@(() => MenuVisible = false)" />
+<!-- DxFlyout Control placed right under the hamburger menu -->
+<DxFlyout @bind-IsOpen="isFlyoutOpen"
+          PositionTarget="#hamburger-menu-btn"
+          Placement="FlyoutPlacement.Bottom"
+          Width="250px"
+          CloseOnOutsideClick="true">
+    <BodyTextTemplate>
+        <div class="p-3">
+            <h5 class="mb-3 border-bottom pb-2 text-primary">Navigation Menu</h5>
+            <DxAccordion ExpandMode="AccordionExpandMode.SingleOrNone">
+                <Items>
+                    <DxAccordionItem Text="Home" Click="@(() => NavigationManager.NavigateTo("/"))" />
+                    <DxAccordionItem Text="Articles">
+                        <Items>
+                            <DxAccordionItem Text="View All" Click="@(() => NavigationManager.NavigateTo("/"))" />
+                        </Items>
+                    </DxAccordionItem>
+                    <DxAccordionItem Text="Admin & Editing">
+                        <Items>
+                            <DxAccordionItem Text="Dashboard" Click="@(() => NavigationManager.NavigateTo("/admin"))" />
+                            <DxAccordionItem Text="New Article" Click="@(() => NavigationManager.NavigateTo("/admin/article/new"))" />
+                            <DxAccordionItem Text="Edit Header" Click="@(() => NavigationManager.NavigateTo("/admin/content/Header"))" />
+                            <DxAccordionItem Text="Edit Footer" Click="@(() => NavigationManager.NavigateTo("/admin/content/Footer"))" />
+                        </Items>
+                    </DxAccordionItem>
+                </Items>
+            </DxAccordion>
         </div>
-    </HeaderTemplate>
-    <BodyTemplate>
-        <DxAccordion>
-            <Items>
-                <DxAccordionItem Text="Navigation" IconCssClass="bi bi-compass" @bind-Expanded="IsNavExpanded">
-                    <ContentTemplate Context="navContext">
-                        <div class="p-3">
-                            <DxButton Text="Home" 
-                                      IconCssClass="bi bi-house-door text-success" 
-                                      RenderStyle="ButtonRenderStyle.Link"
-                                      Click="@(() => NavigateAndClose("/"))"
-                                      CssClass="w-100 text-start mb-2" />
-                            <DxButton Text="Admin Login" 
-                                      IconCssClass="bi bi-person-lock" 
-                                      RenderStyle="ButtonRenderStyle.Link"
-                                      Click="@(() => NavigateAndClose("Account/Login"))"
-                                      CssClass="w-100 text-start" />
-                        </div>
-                    </ContentTemplate>
-                </DxAccordionItem>
-
-                <DxAccordionItem Text="Site Management" IconCssClass="bi bi-gear" @bind-Expanded="IsSiteExpanded">
-                    <ContentTemplate Context="siteContext">
-                        <div class="p-3">
-                            <DxButton Text="Edit Header" 
-                                      IconCssClass="bi bi-file-text" 
-                                      RenderStyle="ButtonRenderStyle.Secondary"
-                                      Click="@(() => NavigateAndClose("admin/content/Header"))"
-                                      CssClass="w-100 mb-2" />
-                            <DxButton Text="Edit Footer" 
-                                      IconCssClass="bi bi-file-text" 
-                                      RenderStyle="ButtonRenderStyle.Secondary"
-                                      Click="@(() => NavigateAndClose("admin/content/Footer"))"
-                                      CssClass="w-100 mb-2" />
-                            <DxButton Text="Test" 
-                                      IconCssClass="bi bi-bug" 
-                                      RenderStyle="ButtonRenderStyle.Info"
-                                      Click="@OpenTestPopup"
-                                      CssClass="w-100" />
-                        </div>
-                    </ContentTemplate>
-                </DxAccordionItem>
-            </Items>
-        </DxAccordion>
-    </BodyTemplate>
+    </BodyTextTemplate>
 </DxFlyout>
 
 <DxPopup @bind-Visible="TestPopupVisible"
@@ -108,21 +83,35 @@
     [Parameter]
     public string HeaderHtml { get; set; } = "";
 
-    private bool MenuVisible = false;
-    private bool IsNavExpanded = true;
-    private bool IsSiteExpanded = false;
     private bool TestPopupVisible = false;
     private DateTime CurrentDateTime = DateTime.Now;
 
-    private void NavigateAndClose(string url)
-    {
-        // Close the flyout and according menus
-        MenuVisible = false;
-        IsNavExpanded = false;
-        IsSiteExpanded = false;
+    // Flyout state
+    private bool isFlyoutOpen = false;
 
-        // Navigate to the URL
-        NavigationManager.NavigateTo(url);
+    protected override void OnInitialized()
+    {
+        // Subscribe to navigation changes to securely close menu when an item is chosen
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void ToggleFlyout()
+    {
+        isFlyoutOpen = !isFlyoutOpen;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (isFlyoutOpen)
+        {
+            isFlyoutOpen = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 
     private void OpenTestPopup()
@@ -132,9 +121,6 @@
 
         // Open the popup
         TestPopupVisible = true;
-
-        // Close the flyout menu
-        MenuVisible = false;
     }
 
     private void CloseTestPopup()

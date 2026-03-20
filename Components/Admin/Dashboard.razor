@@ -1,8 +1,9 @@
 @page "/admin"
-@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@* @using Microsoft.AspNetCore.Authorization *@
 @using CursilloWeb.Data
 @using DevExpress.Blazor
-@attribute [Authorize]
+@* @attribute [Authorize] *@
 @inject CursilloWeb.Services.ArticleService ArticleService
 
 <PageTitle>Admin Dashboard</PageTitle>

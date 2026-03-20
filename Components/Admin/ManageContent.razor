@@ -1,7 +1,7 @@
 @page "/admin/content/{Section}"
-@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+@using DevExpress.Blazor.RichEdit
 @using CursilloWeb.Data
-@attribute [Authorize]
 @inject CursilloWeb.Services.ContentService ContentService
 @inject NavigationManager Navigation
 
@@ -23,8 +23,12 @@
             <div class="alert alert-info">
                 Use the editor below to customize the @Section content.
             </div>
-            
-            <RichTextEditor @bind-Content="HtmlContent" />
+
+            <DxRichEdit @ref="richEdit"
+                        @bind-DocumentContent="FileContent" 
+                        DocumentFormat="DevExpress.Blazor.RichEdit.DocumentFormat.Rtf" 
+                        Height="600px" 
+                        CssClass="w-100" />
         </div>
 
         <button class="btn btn-primary" @onclick="SaveContent">Save Content</button>
@@ -33,19 +37,39 @@
 
 @code {
     [Parameter] public string Section { get; set; } = "Header";
-    
-    private string HtmlContent = "";
+
+    private DxRichEdit? richEdit;
+    private byte[] FileContent = Array.Empty<byte>();
     private bool IsLoading = true;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        HtmlContent = await ContentService.GetContentAsync(Section);
+        IsLoading = true;
+        string content = await ContentService.GetRichTextContentAsync(Section);
+        if (!string.IsNullOrEmpty(content))
+        {
+            FileContent = System.Text.Encoding.UTF8.GetBytes(content);
+        }
+        else 
+        {
+            // If RichTextContent is empty, try getting HtmlContent as fallback
+            string htmlContent = await ContentService.GetContentAsync(Section);
+            if (!string.IsNullOrEmpty(htmlContent)) 
+            {
+                FileContent = System.Text.Encoding.UTF8.GetBytes(htmlContent);
+            }
+        }
         IsLoading = false;
     }
 
     private async Task SaveContent()
     {
-        await ContentService.UpdateContentAsync(Section, HtmlContent);
+        if (richEdit != null)
+        {
+            await richEdit.SaveDocumentAsync();
+        }
+        string richTextContent = System.Text.Encoding.UTF8.GetString(FileContent);
+        await ContentService.UpdateRichTextContentAsync(Section, richTextContent);
         Navigation.NavigateTo("/admin");
     }
 }
