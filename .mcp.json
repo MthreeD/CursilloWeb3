@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "devexpress-docs": {
+      "type": "http",
+      "url": "https://api.devexpress.com/mcp/docs"
+    }
+  }
+}
