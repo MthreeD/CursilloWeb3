@@ -1,0 +1,144 @@
+@rendermode InteractiveServer
+@inject NavigationManager NavigationManager
+
+<header id="main-site-header" class="site-header d-flex justify-content-between align-items-center position-relative">
+    <DxButton id="hamburger-btn"
+              IconCssClass="bi bi-list fs-4" 
+              RenderStyle="ButtonRenderStyle.Primary" 
+              RenderStyleMode="ButtonRenderStyleMode.Outline"
+              CssClass="position-absolute"
+              style="top: 5px; right: 5px; z-index: 1050;"
+              Click="@(() => MenuVisible = !MenuVisible)" />
+    <div class="header-content">
+        @if (!string.IsNullOrEmpty(HeaderHtml))
+        {
+           @((MarkupString)HeaderHtml)
+        }
+        else
+        {
+            <div class="d-flex align-items-center">
+                <!-- Placeholder Logo -->
+                <span class="fs-3 fw-bold text-primary">Cursillo Venice Diocese</span>
+            </div>
+        }
+    </div>
+</header>
+
+<DxFlyout @bind-IsOpen="MenuVisible" 
+          PositionTarget="#hamburger-btn"
+          Position="FlyoutPosition.LeftStart"
+          CloseOnOutsideClick="true"
+          Width="300px">
+    <HeaderTemplate>
+        <div class="d-flex justify-content-between align-items-center p-3">
+            <h5 class="mb-0">Menu</h5>
+            <DxButton IconCssClass="bi bi-x-lg" 
+                      RenderStyle="ButtonRenderStyle.Light"
+                      Click="@(() => MenuVisible = false)" />
+        </div>
+    </HeaderTemplate>
+    <BodyTemplate>
+        <DxAccordion>
+            <Items>
+                <DxAccordionItem Text="Navigation" IconCssClass="bi bi-compass" @bind-Expanded="IsNavExpanded">
+                    <ContentTemplate Context="navContext">
+                        <div class="p-3">
+                            <DxButton Text="Home" 
+                                      IconCssClass="bi bi-house-door text-success" 
+                                      RenderStyle="ButtonRenderStyle.Link"
+                                      Click="@(() => NavigateAndClose("/"))"
+                                      CssClass="w-100 text-start mb-2" />
+                            <DxButton Text="Admin Login" 
+                                      IconCssClass="bi bi-person-lock" 
+                                      RenderStyle="ButtonRenderStyle.Link"
+                                      Click="@(() => NavigateAndClose("Account/Login"))"
+                                      CssClass="w-100 text-start" />
+                        </div>
+                    </ContentTemplate>
+                </DxAccordionItem>
+
+                <DxAccordionItem Text="Site Management" IconCssClass="bi bi-gear" @bind-Expanded="IsSiteExpanded">
+                    <ContentTemplate Context="siteContext">
+                        <div class="p-3">
+                            <DxButton Text="Edit Header" 
+                                      IconCssClass="bi bi-file-text" 
+                                      RenderStyle="ButtonRenderStyle.Secondary"
+                                      Click="@(() => NavigateAndClose("admin/content/Header"))"
+                                      CssClass="w-100 mb-2" />
+                            <DxButton Text="Edit Footer" 
+                                      IconCssClass="bi bi-file-text" 
+                                      RenderStyle="ButtonRenderStyle.Secondary"
+                                      Click="@(() => NavigateAndClose("admin/content/Footer"))"
+                                      CssClass="w-100 mb-2" />
+                            <DxButton Text="Test" 
+                                      IconCssClass="bi bi-bug" 
+                                      RenderStyle="ButtonRenderStyle.Info"
+                                      Click="@OpenTestPopup"
+                                      CssClass="w-100" />
+                        </div>
+                    </ContentTemplate>
+                </DxAccordionItem>
+            </Items>
+        </DxAccordion>
+    </BodyTemplate>
+</DxFlyout>
+
+<DxPopup @bind-Visible="TestPopupVisible"
+         HeaderText="Test Popup"
+         Width="400px"
+         CloseOnOutsideClick="false">
+    <BodyTemplate>
+        <div class="p-3">
+            <DxTextBox Text="testing it" 
+                       ReadOnly="true" 
+                       CssClass="mb-3" />
+            <div class="mb-3">
+                <strong>Current Date & Time:</strong>
+                <div>@CurrentDateTime.ToString("F")</div>
+            </div>
+            <DxButton Text="Close" 
+                      RenderStyle="ButtonRenderStyle.Primary" 
+                      Click="@CloseTestPopup"
+                      CssClass="w-100" />
+        </div>
+    </BodyTemplate>
+</DxPopup>
+
+@code {
+    [Parameter]
+    public string HeaderHtml { get; set; } = "";
+
+    private bool MenuVisible = false;
+    private bool IsNavExpanded = true;
+    private bool IsSiteExpanded = false;
+    private bool TestPopupVisible = false;
+    private DateTime CurrentDateTime = DateTime.Now;
+
+    private void NavigateAndClose(string url)
+    {
+        // Close the flyout and according menus
+        MenuVisible = false;
+        IsNavExpanded = false;
+        IsSiteExpanded = false;
+
+        // Navigate to the URL
+        NavigationManager.NavigateTo(url);
+    }
+
+    private void OpenTestPopup()
+    {
+        // Update the current date and time
+        CurrentDateTime = DateTime.Now;
+
+        // Open the popup
+        TestPopupVisible = true;
+
+        // Close the flyout menu
+        MenuVisible = false;
+    }
+
+    private void CloseTestPopup()
+    {
+        TestPopupVisible = false;
+    }
+}

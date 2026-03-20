@@ -2,26 +2,7 @@
 @inject CursilloWeb.Services.ContentService ContentService
 
 <div class="page-container">
-    <header class="site-header d-flex justify-content-between align-items-center">
-        <div class="header-content">
-            @if (!string.IsNullOrEmpty(HeaderHtml))
-            {
-               @((MarkupString)HeaderHtml)
-            }
-            else
-            {
-                <div class="d-flex align-items-center">
-                    <!-- Placeholder Logo -->
-                    <span class="fs-3 fw-bold text-primary">Cursillo Venice Diocese</span>
-                </div>
-            }
-        </div>
-
-        <DxButton IconCssClass="bi bi-list fs-4" 
-                  RenderStyle="ButtonRenderStyle.Primary" 
-                  RenderStyleMode="ButtonRenderStyleMode.Outline"
-                  Click="@(() => MenuVisible = !MenuVisible)" />
-    </header>
+    <InteractiveHeader HeaderHtml="@HeaderHtml" />
 
     <main class="container my-4">
         @Body
@@ -41,57 +22,13 @@
     </footer>
 </div>
 
-<DxFlyout @bind-IsOpen="MenuVisible" 
-          PositionTarget=".site-header"
-          Position="FlyoutPosition.Right"
-          CloseOnOutsideClick="true"
-          Width="300px">
-    <HeaderTemplate>
-        <div class="d-flex justify-content-between align-items-center p-3">
-            <h5 class="mb-0">Menu</h5>
-            <DxButton IconCssClass="bi bi-x-lg" 
-                      RenderStyle="ButtonRenderStyle.Light"
-                      Click="@(() => MenuVisible = false)" />
-        </div>
-    </HeaderTemplate>
-    <BodyTemplate>
-        <DxMenu Orientation="Orientation.Vertical" 
-                CssClass="w-100"
-                ItemClick="OnMenuItemClick">
-            <Items>
-                <DxMenuItem Text="Home" 
-                           IconCssClass="bi bi-house-door" 
-                           NavigateUrl="/" />
-                <DxMenuItem Text="Admin Login" 
-                           IconCssClass="bi bi-person-lock" 
-                           NavigateUrl="Account/Login" />
-            </Items>
-        </DxMenu>
-    </BodyTemplate>
-</DxFlyout>
-
 @code {
     private string HeaderHtml = "";
     private string FooterHtml = "";
-    private bool MenuVisible = false;
-
-    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         HeaderHtml = await ContentService.GetContentAsync("Header");
         FooterHtml = await ContentService.GetContentAsync("Footer");
-    }
-
-    private void OnMenuItemClick(MenuItemClickEventArgs e)
-    {
-        // Close the flyout when a menu item is clicked
-        MenuVisible = false;
-
-        // Navigate to the URL if specified
-        if (!string.IsNullOrEmpty(e.ItemInfo.NavigateUrl))
-        {
-            NavigationManager.NavigateTo(e.ItemInfo.NavigateUrl);
-        }
     }
 }
