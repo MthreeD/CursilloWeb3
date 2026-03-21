@@ -1,0 +1,13 @@
+@page "/dummy"
+@using DevExpress.Blazor.RichEdit
+@using DevExpress.Blazor
+@using DevExpress.Blazor.Office
+
+<DxRichEdit CustomizeRibbon="OnCustomizeRibbon" />
+
+@code {
+    void OnCustomizeRibbon(IRibbon ribbon)
+    {
+        var fileTab = ribbon.Tabs[1];
+    }
+}

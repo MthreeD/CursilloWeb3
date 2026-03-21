@@ -1,33 +1,52 @@
-@using Microsoft.JSInterop
-@inject IJSRuntime JSRuntime
+@using DevExpress.Blazor
 
-<div id="@Id" style="height: 300px;"></div>
+<DxHtmlEditor @bind-Markup="Content"
+             Height="300px"
+             Width="100%"
+             @bind-Markup:after="OnContentChanged">
+    <DxHtmlEditorToolbar>
+        <DxHtmlEditorBoldButton />
+        <DxHtmlEditorItalicButton />
+        <DxHtmlEditorUnderlineButton />
+        <DxHtmlEditorSeparator />
+        <DxHtmlEditorAlignLeftButton />
+        <DxHtmlEditorAlignCenterButton />
+        <DxHtmlEditorAlignRightButton />
+        <DxHtmlEditorSeparator />
+        <DxHtmlEditorBulletedListButton />
+        <DxHtmlEditorNumberedListButton />
+        <DxHtmlEditorSeparator />
+        <DxHtmlEditorUndoButton />
+        <DxHtmlEditorRedoButton />
+    </DxHtmlEditorToolbar>
+</DxHtmlEditor>
 
 @code {
-    [Parameter] public string Id { get; set; } = "editor-" + Guid.NewGuid().ToString();
     [Parameter] public string Content { get; set; } = "";
     [Parameter] public EventCallback<string> ContentChanged { get; set; }
-
-    private DotNetObjectReference<RichTextEditor>? _objRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            _objRef = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("quillInterop.createEditor", Id, Content, _objRef);
+            // This is called only on the first render - NO JavaScript needed!
+            Console.WriteLine("DxHtmlEditor first render completed");
+
+            // Any other first-render initialization goes here
+            await InitializeEditor();
         }
+
+        await base.OnAfterRenderAsync(firstRender);
     }
 
-    [JSInvokable]
-    public async Task UpdateContent(string html)
+    private async Task InitializeEditor()
     {
-        Content = html;
-        await ContentChanged.InvokeAsync(html);
+        // Custom initialization logic for first render
+        await Task.CompletedTask;
     }
 
-    public void Dispose()
+    private async Task OnContentChanged()
     {
-        _objRef?.Dispose();
+        await ContentChanged.InvokeAsync(Content);
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Components;
 using CursilloWeb.Data;
+using CursilloWeb.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,8 +11,9 @@ builder.Services.AddDevExpressBlazor();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddScoped<CursilloWeb.Services.ArticleService>();
-builder.Services.AddScoped<CursilloWeb.Services.ContentService>();
+builder.Services.AddScoped<ArticleService>();
+builder.Services.AddScoped<ContentService>();
+builder.Services.AddScoped<DatabaseFixService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -24,6 +26,23 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+    // First fix any database data issues
+    var dbFixService = scope.ServiceProvider.GetRequiredService<DatabaseFixService>();
+    try 
+    {
+        Console.WriteLine("Checking for database issues...");
+        var diagnosis = await dbFixService.DiagnoseContentBlocksAsync();
+        Console.WriteLine(diagnosis);
+
+        // Automatically fix binary data issues
+        await dbFixService.FixContentBlocksDataAsync();
+        Console.WriteLine("Database fix completed.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Warning: Database fix failed: {ex.Message}");
+    }
+
     await CursilloWeb.Data.DataSeeder.SeedAsync(scope.ServiceProvider);
 }
 
