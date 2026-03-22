@@ -1,0 +1,37 @@
+@* @using DevExpress.Blazor *@
+@using DevExpress.Blazor.RichEdit
+
+<DxRichEdit @bind-Markup="Content"
+           @bind-Markup:after="OnContentChanged"
+           Height="300px"
+           Width="100%" />
+
+@code {
+    [Parameter] public string Content { get; set; } = "";
+    [Parameter] public EventCallback<string> ContentChanged { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // This is called only on the first render - NO JavaScript needed!
+            Console.WriteLine("DxRichEdit first render completed");
+
+            // Any other first-render initialization goes here
+            await InitializeEditor();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task InitializeEditor()
+    {
+        // Custom initialization logic for first render
+        await Task.CompletedTask;
+    }
+
+    private async Task OnContentChanged()
+    {
+        await ContentChanged.InvokeAsync(Content);
+    }
+}

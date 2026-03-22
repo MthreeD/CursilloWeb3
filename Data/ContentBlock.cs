@@ -11,7 +11,7 @@ public class ContentBlock
 
     public string? HtmlContent { get; set; }
 
-    public string? RichTextContent { get; set; }
+    public string? RTFContent { get; set; }
 
     public DateTime LastUpdated { get; set; } = DateTime.Now;
 }

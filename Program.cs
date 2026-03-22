@@ -8,12 +8,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddDevExpressBlazor();
+builder.Services.AddDevExpressAI();
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    .AddInteractiveServerComponents(options =>
+    {
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromSeconds(3);
+    });
 
 builder.Services.AddScoped<ArticleService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<DatabaseFixService>();
+// Register browser lifecycle services to stop application when browser closes
+builder.Services.AddSingleton<BrowserLifecycleService>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, ShutdownCircuitHandler>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -23,6 +30,9 @@ builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 var app = builder.Build();
+// use pictures from local folder
+app.UseStaticFiles();
+
 
 using (var scope = app.Services.CreateScope())
 {

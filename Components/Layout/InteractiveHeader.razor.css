@@ -1,0 +1,219 @@
+/* Interactive Header Styles */
+.site-header {
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+/* Hamburger Button Styling */
+.hamburger-container {
+    cursor: pointer;
+}
+
+::deep .hamburger-btn {
+    background: rgba(255,255,255,0.95) !important;
+    border: 2px solid rgba(255,255,255,0.8) !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
+    color: #495057 !important;
+    min-width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+::deep .hamburger-btn:hover {
+    background: rgba(255,255,255,1) !important;
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    border-color: rgba(102, 126, 234, 0.6) !important;
+}
+
+::deep .hamburger-btn:active {
+    transform: scale(0.95);
+}
+
+::deep .hamburger-btn i {
+    font-size: 1.2rem;
+    color: #495057;
+}
+
+/* Navigation Flyout Container */
+::deep .navigation-flyout {
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    overflow: hidden !important;
+}
+
+/* Navigation Menu Container */
+.navigation-menu-container {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.navigation-header {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    padding: 12px 16px;
+    color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.navigation-content {
+    padding: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Navigation Accordion Styling */
+::deep .navigation-accordion {
+    border: none !important;
+    background: transparent !important;
+}
+
+/* Individual Navigation Items */
+::deep .navigation-accordion .accordion-item {
+    border: none !important;
+    margin-bottom: 4px;
+    border-radius: 8px !important;
+    overflow: hidden;
+}
+
+::deep .navigation-accordion .accordion-button {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+    border: none !important;
+    color: #495057 !important;
+    font-weight: 500;
+    padding: 12px 16px !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+::deep .navigation-accordion .accordion-button:hover {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%) !important;
+    color: white !important;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+::deep .navigation-accordion .accordion-button:not(.collapsed) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+::deep .navigation-accordion .accordion-button:focus {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3) !important;
+    border-color: #667eea !important;
+}
+
+/* Sub-menu Items */
+::deep .navigation-accordion .accordion-body {
+    background: #f8f9fa !important;
+    padding: 8px !important;
+    border-radius: 0 0 8px 8px;
+}
+
+::deep .navigation-accordion .accordion-body .accordion-button {
+    background: #ffffff !important;
+    font-size: 13px;
+    padding: 10px 14px !important;
+    margin-bottom: 2px;
+    border-radius: 6px !important;
+}
+
+::deep .navigation-accordion .accordion-body .accordion-button:hover {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: white !important;
+    transform: translateX(6px);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Home Item Styling */
+::deep .nav-item-home .accordion-button {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+    color: white !important;
+}
+
+::deep .nav-item-home .accordion-button:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ea47c 100%) !important;
+    transform: translateX(6px);
+}
+
+/* Test Page Item Styling */
+::deep .nav-item-test .accordion-button {
+    background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+    color: white !important;
+}
+
+::deep .nav-item-test .accordion-button:hover {
+    background: linear-gradient(135deg, #e0a800 0%, #e55a00 100%) !important;
+    transform: translateX(6px);
+}
+
+/* Articles Section */
+::deep .nav-item-articles .accordion-button {
+    background: linear-gradient(135deg, #17a2b8 0%, #6f42c1 100%) !important;
+    color: white !important;
+}
+
+/* Admin Section */
+::deep .nav-item-admin .accordion-button {
+    background: linear-gradient(135deg, #dc3545 0%, #e83e8c 100%) !important;
+    color: white !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .site-header {
+        padding: 0.75rem;
+    }
+    
+    #hamburger-menu-btn {
+        right: 8px !important;
+    }
+    
+    ::deep .navigation-flyout {
+        width: calc(100vw - 20px) !important;
+        max-width: 280px !important;
+    }
+}
+
+/* Animation for flyout appearance */
+::deep .navigation-flyout {
+    animation: slideInFromTop 0.3s ease-out;
+}
+
+@keyframes slideInFromTop {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom scrollbar for navigation content */
+.navigation-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.navigation-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.navigation-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 3px;
+}
+
+.navigation-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}

@@ -46,21 +46,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Content</label>
-                <DxHtmlEditor @bind-Markup="ArticleModel.Content" Height="400px">
-                    <DxHtmlEditorToolbar>
-                        <DxHtmlEditorUndo />
-                        <DxHtmlEditorRedo />
-                        <DxHtmlEditorSeparator />
-                        <DxHtmlEditorBold />
-                        <DxHtmlEditorItalic />
-                        <DxHtmlEditorUnderline />
-                        <DxHtmlEditorStrikethrough />
-                        <DxHtmlEditorSeparator />
-                        <DxHtmlEditorList Checkboxes="true" />
-                        <DxHtmlEditorList />
-                        <DxHtmlEditorAlignment />
-                    </DxHtmlEditorToolbar>
-                </DxHtmlEditor>
+                <DxRichEdit @bind-Markup="ArticleModel.Content" Height="400px" />
             </div>
 
             <button type="submit" class="btn btn-primary">Save Article</button>

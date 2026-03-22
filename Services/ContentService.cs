@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
 using System.Text;
 using System.Web;
+using System.Linq;
 
 namespace CursilloWeb.Services;
 
@@ -41,7 +42,7 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
         }
     }
 
-    public async Task<string> GetRichTextContentAsync(string section)
+    public async Task<string> GetRTFContentAsync(string section)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
 
@@ -51,28 +52,62 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
             var result = await context.Database
                 .SqlQuery<BinaryContentData>($@"
                     SELECT 
-                        CAST(RichTextContent AS varbinary(max)) as ContentBinary,
-                        CASE WHEN RichTextContent IS NULL THEN 1 ELSE 0 END as IsNull
+                        CAST(RTFContent AS varbinary(max)) as ContentBinary,
+                        CASE WHEN RTFContent IS NULL THEN 1 ELSE 0 END as IsNull
                     FROM ContentBlocks 
                     WHERE Section = {section}")
                 .FirstOrDefaultAsync();
 
             if (result == null || result.IsNull == 1)
-                return CreateBasicRichTextStructure(""); // Return empty rich text structure
+                return GetSafeDefaultRTFContent(section); // Return default RTF content
 
-            // Convert binary data to string
+            // Convert binary data to string (RTF content)
             var content = ConvertBinaryToString(result.ContentBinary) ?? string.Empty;
 
-            // Validate rich text content
-            return ValidateAndCleanRichTextContent(content);
+            return content;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in GetRichTextContentAsync: {ex.Message}");
+            Console.WriteLine($"Error in GetRTFContentAsync: {ex.Message}");
 
-            // Fallback: return safe empty rich text structure
-            return CreateBasicRichTextStructure("");
+            // Fallback: return safe default RTF content
+            return GetSafeDefaultRTFContent(section);
         }
+    }
+
+    /// <summary>
+    /// Gets RTF content as byte array for DxRichEdit DocumentContent binding
+    /// </summary>
+    public async Task<byte[]> GetRTFDocumentContentAsync(string section)
+    {
+        var rtfString = await GetRTFContentAsync(section);
+        if (string.IsNullOrEmpty(rtfString))
+        {
+            return GetDefaultRTFBytes(section);
+        }
+
+        return System.Text.Encoding.UTF8.GetBytes(rtfString);
+    }
+
+    /// <summary>
+    /// Updates RTF content from byte array (from DxRichEdit DocumentContent)
+    /// </summary>
+    public async Task UpdateRTFDocumentContentAsync(string section, byte[] rtfDocumentContent)
+    {
+        Console.WriteLine($"UpdateRTFDocumentContentAsync called for section: {section}");
+        Console.WriteLine($"RTF document content length: {rtfDocumentContent?.Length ?? 0}");
+
+        if (rtfDocumentContent == null || rtfDocumentContent.Length == 0)
+        {
+            Console.WriteLine("Warning: Empty RTF document content received");
+            return;
+        }
+
+        var rtfString = System.Text.Encoding.UTF8.GetString(rtfDocumentContent);
+        Console.WriteLine($"RTF string length: {rtfString.Length}");
+        Console.WriteLine($"RTF content preview: {rtfString.Substring(0, Math.Min(100, rtfString.Length))}...");
+
+        await UpdateRTFContentAsync(section, rtfString);
     }
 
     public async Task<ContentBlock?> GetContentBlockAsync(string section)
@@ -88,9 +123,9 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
                         Id,
                         Section,
                         CAST(HtmlContent AS varbinary(max)) as HtmlContentBinary,
-                        CAST(RichTextContent AS varbinary(max)) as RichTextContentBinary,
+                        CAST(RTFContent AS varbinary(max)) as RichTextContentBinary,
                         CASE WHEN HtmlContent IS NULL THEN 1 ELSE 0 END as HtmlIsNull,
-                        CASE WHEN RichTextContent IS NULL THEN 1 ELSE 0 END as RichTextIsNull,
+                        CASE WHEN RTFContent IS NULL THEN 1 ELSE 0 END as RichTextIsNull,
                         LastUpdated
                     FROM ContentBlocks 
                     WHERE Section = {section}")
@@ -104,7 +139,7 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
                 Id = result.Id,
                 Section = result.Section,
                 HtmlContent = result.HtmlIsNull == 1 ? null : ConvertBinaryToString(result.HtmlContentBinary),
-                RichTextContent = result.RichTextIsNull == 1 ? null : ConvertBinaryToString(result.RichTextContentBinary),
+                RTFContent = result.RichTextIsNull == 1 ? null : ConvertBinaryToString(result.RichTextContentBinary),
                 LastUpdated = result.LastUpdated
             };
         }
@@ -130,50 +165,73 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
 
         try
         {
+            Console.WriteLine($"UpdateContentAsync called for section: {section}");
+            Console.WriteLine($"Content length: {html?.Length ?? 0}");
+
+            // First, let's test if we can select from the table
+            var existingBlock = await context.ContentBlocks
+                .Where(b => b.Section == section)
+                .FirstOrDefaultAsync();
+
+            Console.WriteLine($"Existing block found: {existingBlock != null}");
+
             // Use raw SQL to avoid EF mapping issues entirely
             var rowsAffected = await context.Database.ExecuteSqlAsync($@"
                 UPDATE ContentBlocks 
                 SET HtmlContent = {html}, LastUpdated = {DateTime.Now}
                 WHERE Section = {section}");
 
+            Console.WriteLine($"Rows affected by update: {rowsAffected}");
+
             // If no rows were updated, insert a new record
             if (rowsAffected == 0)
             {
+                Console.WriteLine("No rows updated, inserting new record...");
                 await context.Database.ExecuteSqlAsync($@"
                     INSERT INTO ContentBlocks (Id, Section, HtmlContent, LastUpdated)
                     VALUES ({Guid.NewGuid()}, {section}, {html}, {DateTime.Now})");
+                Console.WriteLine("Insert completed");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in UpdateContentAsync: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             throw; // Re-throw the exception since we can't safely fall back
         }
     }
 
-    public async Task UpdateRichTextContentAsync(string section, string richTextJson)
+    public async Task UpdateRTFContentAsync(string section, string richTextJson)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
 
         try
         {
+            Console.WriteLine($"UpdateRTFContentAsync called for section: {section}");
+            Console.WriteLine($"RTF content length: {richTextJson?.Length ?? 0}");
+
             // Use raw SQL to avoid EF mapping issues entirely
             var rowsAffected = await context.Database.ExecuteSqlAsync($@"
                 UPDATE ContentBlocks 
-                SET RichTextContent = {richTextJson}, LastUpdated = {DateTime.Now}
+                SET RTFContent = {richTextJson}, LastUpdated = {DateTime.Now}
                 WHERE Section = {section}");
+
+            Console.WriteLine($"Rows affected by RTF update: {rowsAffected}");
 
             // If no rows were updated, insert a new record
             if (rowsAffected == 0)
             {
+                Console.WriteLine("No rows updated, inserting new RTF record...");
                 await context.Database.ExecuteSqlAsync($@"
-                    INSERT INTO ContentBlocks (Id, Section, RichTextContent, LastUpdated)
+                    INSERT INTO ContentBlocks (Id, Section, RTFContent, LastUpdated)
                     VALUES ({Guid.NewGuid()}, {section}, {richTextJson}, {DateTime.Now})");
+                Console.WriteLine("RTF insert completed");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in UpdateRichTextContentAsync: {ex.Message}");
+            Console.WriteLine($"Error in UpdateRTFContentAsync: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             throw; // Re-throw the exception since we can't safely fall back
         }
     }
@@ -187,14 +245,14 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
             // Use raw SQL to avoid EF mapping issues entirely
             var rowsAffected = await context.Database.ExecuteSqlAsync($@"
                 UPDATE ContentBlocks 
-                SET HtmlContent = {html}, RichTextContent = {richTextJson}, LastUpdated = {DateTime.Now}
+                SET HtmlContent = {html}, RTFContent = {richTextJson}, LastUpdated = {DateTime.Now}
                 WHERE Section = {section}");
 
             // If no rows were updated, insert a new record
             if (rowsAffected == 0)
             {
                 await context.Database.ExecuteSqlAsync($@"
-                    INSERT INTO ContentBlocks (Id, Section, HtmlContent, RichTextContent, LastUpdated)
+                    INSERT INTO ContentBlocks (Id, Section, HtmlContent, RTFContent, LastUpdated)
                     VALUES ({Guid.NewGuid()}, {section}, {html}, {richTextJson}, {DateTime.Now})");
             }
         }
@@ -231,9 +289,9 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
                         Id,
                         Section,
                         CAST(HtmlContent AS varbinary(max)) as HtmlContentBinary,
-                        CAST(RichTextContent AS varbinary(max)) as RichTextContentBinary,
+                        CAST(RTFContent AS varbinary(max)) as RichTextContentBinary,
                         CASE WHEN HtmlContent IS NULL THEN 1 ELSE 0 END as HtmlIsNull,
-                        CASE WHEN RichTextContent IS NULL THEN 1 ELSE 0 END as RichTextIsNull,
+                        CASE WHEN RTFContent IS NULL THEN 1 ELSE 0 END as RichTextIsNull,
                         LastUpdated
                     FROM ContentBlocks")
                 .ToListAsync();
@@ -248,7 +306,7 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
                     UPDATE ContentBlocks 
                     SET 
                         HtmlContent = {htmlText},
-                        RichTextContent = {richTextText},
+                        RTFContent = {richTextText},
                         LastUpdated = {DateTime.Now}
                     WHERE Id = {record.Id}");
             }
@@ -271,7 +329,7 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
 
         try
         {
-            // Use raw SQL to get HTML content safely
+            // Use raw SQL to get HTML content safely for blocks that need conversion
             var blocksToConvert = await context.Database
                 .SqlQuery<ConversionData>($@"
                     SELECT 
@@ -281,28 +339,28 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
                     FROM ContentBlocks 
                     WHERE HtmlContent IS NOT NULL 
                     AND LEN(CONVERT(nvarchar(max), HtmlContent)) > 0 
-                    AND (RichTextContent IS NULL OR LEN(CONVERT(nvarchar(max), RichTextContent)) = 0)")
+                    AND (RTFContent IS NULL OR LEN(CONVERT(nvarchar(max), RTFContent)) = 0)")
                 .ToListAsync();
 
             foreach (var block in blocksToConvert)
             {
                 try
                 {
-                    var richTextJson = ConvertHtmlToRichText(block.HtmlContent);
+                    var richTextJson = ConvertHtmlToRichText(block.HtmlContent ?? string.Empty);
 
                     await context.Database.ExecuteSqlAsync($@"
                         UPDATE ContentBlocks 
-                        SET RichTextContent = {richTextJson}, LastUpdated = {DateTime.Now}
+                        SET RTFContent = {richTextJson}, LastUpdated = {DateTime.Now}
                         WHERE Id = {block.Id}");
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error converting HTML to RichText for section '{block.Section}': {ex.Message}");
 
-                    var fallbackRichText = CreateBasicRichTextStructure(block.HtmlContent ?? string.Empty);
+                    var fallbackRichText = ConvertHtmlToRichText(block.HtmlContent ?? string.Empty);
                     await context.Database.ExecuteSqlAsync($@"
                         UPDATE ContentBlocks 
-                        SET RichTextContent = {fallbackRichText}, LastUpdated = {DateTime.Now}
+                        SET RTFContent = {fallbackRichText}, LastUpdated = {DateTime.Now}
                         WHERE Id = {block.Id}");
                 }
             }
@@ -395,36 +453,26 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
     private static string ValidateAndCleanRichTextContent(string content)
     {
         if (string.IsNullOrEmpty(content))
-            return CreateBasicRichTextStructure("");
+            return GetSafeDefaultRTFContent("default");
 
         try
         {
             // Remove any null characters
             content = content.Replace('\0', ' ').Trim();
 
-            // Check if it looks like JSON
-            if (content.StartsWith('{') && content.EndsWith('}'))
+            // For RTF content, just return as-is if it looks like RTF
+            if (content.StartsWith(@"{\rtf"))
             {
-                // Try to parse as JSON to validate
-                try
-                {
-                    using var doc = System.Text.Json.JsonDocument.Parse(content);
-                    return content; // Valid JSON
-                }
-                catch
-                {
-                    Console.WriteLine("Invalid JSON detected in rich text content, creating basic structure");
-                    return CreateBasicRichTextStructure("Content format error - please re-enter content.");
-                }
+                return content; // Valid RTF
             }
 
-            // If it's not JSON, treat it as plain text
-            return CreateBasicRichTextStructure(content);
+            // If it's not RTF, convert to RTF
+            return ConvertHtmlToRichText(content);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error validating rich text content: {ex.Message}");
-            return CreateBasicRichTextStructure("Content validation failed - please contact administrator.");
+            return GetSafeDefaultRTFContent("default");
         }
     }
 
@@ -441,36 +489,36 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
         };
     }
 
-    private static string ConvertHtmlToRichText(string htmlContent)
+    /// <summary>
+    /// Returns safe default RTF content for a given section
+    /// </summary>
+    private static string GetSafeDefaultRTFContent(string section)
     {
-        // Simple conversion - in a real application you might use a library like AngleSharp or HtmlAgilityPack
-        var plainText = System.Text.RegularExpressions.Regex.Replace(htmlContent, "<[^>]*>", "").Trim();
-        return CreateBasicRichTextStructure(plainText);
-    }
-
-    private static string CreateBasicRichTextStructure(string text)
-    {
-        var richTextDocument = new
+        var defaultText = section.ToLower() switch
         {
-            type = "doc",
-            content = new[]
-            {
-                new
-                {
-                    type = "paragraph",
-                    content = new[]
-                    {
-                        new { type = "text", text = text }
-                    }
-                }
-            }
+            "header" => "Welcome - Header content will be displayed here.",
+            "footer" => "© 2025 Cursillo Web. All rights reserved.",
+            _ => "Content will be displayed here once configured."
         };
 
-        return System.Text.Json.JsonSerializer.Serialize(richTextDocument, new System.Text.Json.JsonSerializerOptions 
-        { 
-            WriteIndented = false,
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        });
+        // Return actual RTF format, not JSON
+        return $@"{{\rtf1\ansi\deff0 {{\fonttbl {{\f0 Times New Roman;}}}}{{\colortbl;\red0\green0\blue0;}}\f0\fs24 {defaultText}}}";
+    }
+
+    /// <summary>
+    /// Gets default RTF content as byte array
+    /// </summary>
+    private static byte[] GetDefaultRTFBytes(string section)
+    {
+        var rtfString = GetSafeDefaultRTFContent(section);
+        return System.Text.Encoding.UTF8.GetBytes(rtfString);
+    }
+
+    private static string ConvertHtmlToRichText(string htmlContent)
+    {
+        // Convert HTML to RTF format (simple conversion)
+        var plainText = System.Text.RegularExpressions.Regex.Replace(htmlContent, "<[^>]*>", "").Trim();
+        return $@"{{\rtf1\ansi\deff0 {{\fonttbl {{\f0 Times New Roman;}}}}{{\colortbl;\red0\green0\blue0;}}\f0\fs24 {plainText}}}";
     }
 }
 

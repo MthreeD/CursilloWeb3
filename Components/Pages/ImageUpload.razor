@@ -1,0 +1,408 @@
+@page "/upload-image"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Hosting
+@using System.IO
+@* We inject the environment to find the physical path to wwwroot *@
+@inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
+
+<h3>Image Management</h3>
+
+@if (currentView == PageView.List)
+{
+<div class="mb-3">
+    <DxButton Text="Return to Home" Click="@ReturnToHome" RenderStyle="ButtonRenderStyle.Secondary" />
+</div>
+
+<div class="upload-container mb-4 position-relative">
+    <DxLoadingPanel Visible="@isUploading" Text="Uploading..." IsContentBlocked="true" />
+    <h5>Upload a New Image</h5>
+    <InputFile OnChange="HandleFileSelection" accept="image/*" class="form-control mw-100" style="max-width: 400px;" />
+
+    <div class="mt-2">
+        <DxButton Text="Upload Selected File" Click="ProcessNewUpload" RenderStyle="ButtonRenderStyle.Primary" Disabled="@(pendingNewUploadFile == null || isUploading)" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-2">@errorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success mt-2">@successMessage</div>
+    }
+</div>
+
+<h4>Existing Images</h4>
+<DxGrid Data="@images"
+        ShowFilterRow="false"
+        PageSize="10"
+        CssClass="mt-3">
+    <Columns>
+        <DxGridDataColumn FieldName="@nameof(ImageInfo.DisplayName)" Caption="Picture Name" />
+        <DxGridDataColumn FieldName="@nameof(ImageInfo.Size)" Caption="Size (Bytes)" DisplayFormat="N0" Width="150px" />
+        <DxGridDataColumn FieldName="@nameof(ImageInfo.DateModified)" Caption="Date Modified" DisplayFormat="g" Width="200px" />
+        <DxGridCommandColumn Width="250px" NewButtonVisible="false" EditButtonVisible="false" DeleteButtonVisible="false">
+            <HeaderCaptionTemplate>
+                <div class="text-center w-100 fs-5 text-dark fw-bold">
+                    <i class="bi bi-plus-circle-fill"></i>
+                </div>
+            </HeaderCaptionTemplate>
+            <CellDisplayTemplate>
+                @{ var img = (ImageInfo)context.DataItem; }
+                <div class="d-flex justify-content-center gap-3">
+                    <DxButton Text="View" 
+                              IconCssClass="bi bi-eye"
+                              Click="@(() => ViewImage(img))" 
+                              RenderStyle="ButtonRenderStyle.Link" />
+                    <DxButton Text="Edit" 
+                              IconCssClass="bi bi-pencil"
+                              Click="@(() => EditImage(img))" 
+                              RenderStyle="ButtonRenderStyle.Link" />
+                    <DxButton Text="Delete" 
+                              IconCssClass="bi bi-trash"
+                              Click="@(() => DeleteImage(img))" 
+                              RenderStyle="ButtonRenderStyle.Link" 
+                              CssClass="text-danger" />
+                </div>
+            </CellDisplayTemplate>
+        </DxGridCommandColumn>
+    </Columns>
+</DxGrid>
+
+}
+else if (currentView == PageView.View)
+{
+    <h4>View Image</h4>
+    <div class="mb-3">
+        <DxButton Text="Return" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+    </div>
+    <div class="text-center">
+        @if (selectedImage != null)
+        {
+            <img src="@selectedImage.Url" class="img-fluid" style="max-height: 80vh;" alt="Viewed Image" />
+        }
+    </div>
+}
+else if (currentView == PageView.Edit)
+{
+    <h4>Edit Image</h4>
+    <div class="mb-3 d-flex gap-2">
+        <DxButton Text="Cancel" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+        <DxButton Text="Return" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+        <DxButton Text="Save" Click="@SaveEdit" RenderStyle="ButtonRenderStyle.Primary" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(editErrorMessage))
+    {
+        <div class="alert alert-danger mt-2">@editErrorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(editSuccessMessage))
+    {
+        <div class="alert alert-success mt-2">@editSuccessMessage</div>
+    }
+
+    <div class="mb-3" style="max-width: 400px;">
+        <label class="form-label fw-bold">Picture Name</label>
+        <DxTextBox @bind-Text="@editImageName" />
+    </div>
+
+    <div class="mb-3" style="max-width: 600px;">
+        <label class="form-label fw-bold">Replace File (Optional)</label>
+        <InputFile OnChange="HandleReplacementSelection" accept="image/*" class="form-control" />
+    </div>
+
+    <div class="text-start mt-4">
+        @if (selectedImage != null)
+        {
+            <img src="@selectedImage.Url" class="img-fluid shadow-sm border" style="max-height: 50vh;" alt="Edit Image Preview" />
+        }
+    </div>
+}
+
+@code {
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isUploading = false;
+
+    private enum PageView { List, View, Edit }
+    private PageView currentView = PageView.List;
+    private ImageInfo? selectedImage;
+    private string editImageName = string.Empty;
+    private string? editErrorMessage;
+    private string? editSuccessMessage;
+    private IBrowserFile? pendingReplacementFile;
+
+    private List<ImageInfo> images = new();
+
+    private IBrowserFile? pendingNewUploadFile;
+
+    // Safety limits
+    private const int MaxImageWidth = 1920;
+    private const int MaxImageHeight = 1080;
+    private const long MaxFileSize = 1024 * 1024 * 5; // 5 MB maximum
+
+    protected override void OnInitialized()
+    {
+        LoadImages();
+    }
+
+    private void LoadImages()
+    {
+        images.Clear();
+        string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+
+        if (Directory.Exists(uploadsFolder))
+        {
+            var files = new DirectoryInfo(uploadsFolder).GetFiles();
+            foreach (var file in files)
+            {
+                string displayName = file.Name;
+                if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                {
+                    displayName = displayName.Substring(37);
+                }
+
+                images.Add(new ImageInfo
+                {
+                    FileName = file.Name,
+                    DisplayName = displayName,
+                    FullPath = file.FullName,
+                    Url = $"/images/{file.Name}",
+                    Size = file.Length,
+                    DateModified = file.LastWriteTime
+                });
+            }
+            images = images.OrderByDescending(i => i.DateModified).ToList();
+        }
+    }
+
+    private void ViewImage(ImageInfo image)
+    {
+        selectedImage = image;
+        currentView = PageView.View;
+    }
+
+    private void EditImage(ImageInfo image)
+    {
+        selectedImage = image;
+        editImageName = image.DisplayName;
+        editErrorMessage = null;
+        editSuccessMessage = null;
+        pendingReplacementFile = null;
+        currentView = PageView.Edit;
+    }
+
+    private void ReturnToList()
+    {
+        currentView = PageView.List;
+        selectedImage = null;
+        pendingReplacementFile = null;
+    }
+
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        pendingNewUploadFile = e.File;
+        errorMessage = null;
+        successMessage = null;
+    }
+
+    private void HandleReplacementSelection(InputFileChangeEventArgs e)
+    {
+        pendingReplacementFile = e.File;
+    }
+
+    private async Task ProcessNewUpload()
+    {
+        if (pendingNewUploadFile == null) return;
+        await HandleStreamUpload(pendingNewUploadFile, isReplacement: false);
+    }
+
+    private async Task SaveEdit()
+    {
+        if (selectedImage == null) return;
+
+        try
+        {
+            // If they uploaded a new file to replace the existing one
+            if (pendingReplacementFile != null)
+            {
+                await HandleStreamUpload(pendingReplacementFile, isReplacement: true);
+                return; // HandleStreamUpload calls ReturnToList and LoadImages
+            }
+
+            // Otherwise just rename it
+            string ext = Path.GetExtension(selectedImage.FileName);
+            string newDisplayName = editImageName;
+            if (string.IsNullOrWhiteSpace(newDisplayName)) newDisplayName = "image";
+            if (!newDisplayName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) newDisplayName += ext;
+
+            string dir = Path.GetDirectoryName(selectedImage.FullPath)!;
+            string prefix = "";
+            if (selectedImage.FileName.Length > 37 && selectedImage.FileName[36] == '_' && Guid.TryParse(selectedImage.FileName.Substring(0, 36), out var g))
+            {
+                prefix = g.ToString() + "_";
+            }
+            else
+            {
+                prefix = Guid.NewGuid().ToString() + "_";
+            }
+
+            string newFileName = prefix + newDisplayName;
+            string newPath = Path.Combine(dir, newFileName);
+
+            if (selectedImage.FullPath != newPath)
+            {
+                File.Move(selectedImage.FullPath, newPath);
+            }
+
+            editSuccessMessage = "Image saved successfully!";
+            StateHasChanged();
+            await Task.Delay(1000);
+
+            LoadImages();
+            ReturnToList();
+        }
+        catch (Exception ex)
+        {
+            editErrorMessage = $"Error saving image: {ex.Message}";
+        }
+    }
+
+    private void DeleteImage(ImageInfo image)
+    {
+        try
+        {
+            if (File.Exists(image.FullPath))
+            {
+                File.Delete(image.FullPath);
+                successMessage = $"Deleted {image.FileName}";
+                errorMessage = null;
+                LoadImages();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting file: {ex.Message}";
+            successMessage = null;
+        }
+    }
+
+    private void ReturnToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task HandleStreamUpload(IBrowserFile originalFile, bool isReplacement)
+    {
+        isUploading = true;
+        if (isReplacement)
+        {
+            editErrorMessage = null;
+            editSuccessMessage = null;
+        }
+        else
+        {
+            errorMessage = null;
+            successMessage = null;
+        }
+        StateHasChanged();
+
+        try
+        {
+            var compressedImage = await originalFile.RequestImageFileAsync("image/jpeg", MaxImageWidth, MaxImageHeight);
+
+            if (compressedImage.Size > MaxFileSize)
+            {
+                ThrowError("Image is too large. Please select a smaller file.", isReplacement);
+                return;
+            }
+
+            string safeOriginalName = new string(originalFile.Name.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray());
+            if (string.IsNullOrWhiteSpace(safeOriginalName)) { safeOriginalName = "image.jpg"; }
+
+            if (!safeOriginalName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) && !safeOriginalName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
+            {
+                safeOriginalName = Path.GetFileNameWithoutExtension(safeOriginalName) + ".jpg";
+            }
+
+            // If it's a replacement, try to use the current edit name, but with the new file's extension
+            string ext = Path.GetExtension(safeOriginalName);
+            if (isReplacement && !string.IsNullOrWhiteSpace(editImageName))
+            {
+                safeOriginalName = editImageName;
+                if (!safeOriginalName.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    safeOriginalName += ext;
+                }
+            }
+
+            string prefix = Guid.NewGuid().ToString() + "_";
+
+            // If replacement, keep the old guid if possible just for consistency, or let it change
+            if (isReplacement && selectedImage != null)
+            {
+                 if (selectedImage.FileName.Length > 37 && selectedImage.FileName[36] == '_' && Guid.TryParse(selectedImage.FileName.Substring(0, 36), out var g))
+                 {
+                     prefix = g.ToString() + "_";
+                 }
+                 // Delete the old file since we are overwriting it entirely
+                 if (File.Exists(selectedImage.FullPath))
+                 {
+                     File.Delete(selectedImage.FullPath);
+                 }
+            }
+
+            string uniqueFileName = prefix + safeOriginalName;
+            string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            string fullFilePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (FileStream fs = new FileStream(fullFilePath, FileMode.Create))
+            {
+                await compressedImage.OpenReadStream(MaxFileSize).CopyToAsync(fs);
+            }
+
+            if (isReplacement)
+            {
+                editSuccessMessage = "Image replaced and saved successfully!";
+                StateHasChanged();
+                await Task.Delay(1000);
+                LoadImages();
+                ReturnToList();
+            }
+            else
+            {
+                pendingNewUploadFile = null;
+                successMessage = $"Success! Image saved as {uniqueFileName}";
+                LoadImages();
+            }
+        }
+        catch (Exception ex)
+        {
+            ThrowError($"An error occurred: {ex.Message}", isReplacement);
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void ThrowError(string msg, bool isReplacement)
+    {
+        if (isReplacement) editErrorMessage = msg;
+        else errorMessage = msg;
+        isUploading = false;
+    }
+
+    public class ImageInfo
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string FullPath { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public DateTime DateModified { get; set; }
+    }
+}

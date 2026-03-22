@@ -48,24 +48,24 @@ public class DiagnosticService(IDbContextFactory<ApplicationDbContext> contextFa
         }
     }
 
-    public async Task<string> DiagnoseRichTextContentAsync()
+    public async Task<string> DiagnoseRTFContentAsync()
     {
         await using var context = await contextFactory.CreateDbContextAsync();
-        
+
         try
         {
-            // Try to access just the RichTextContent property
+            // Try to access just the RTFContent property
             var firstBlock = await context.ContentBlocks
-                .Select(cb => new { cb.Id, cb.Section, cb.RichTextContent })
+                .Select(cb => new { cb.Id, cb.Section, cb.RTFContent })
                 .FirstOrDefaultAsync();
-                
-            return firstBlock?.RichTextContent == null 
-                ? "RichTextContent is null" 
-                : $"RichTextContent length: {firstBlock.RichTextContent.Length}";
+
+            return firstBlock?.RTFContent == null 
+                ? "RTFContent is null" 
+                : $"RTFContent length: {firstBlock.RTFContent.Length}";
         }
         catch (Exception ex)
         {
-            return $"Error reading RichTextContent: {ex.Message} - {ex.GetType().Name}";
+            return $"Error reading RTFContent: {ex.Message} - {ex.GetType().Name}";
         }
     }
 }

@@ -1,0 +1,199 @@
+@* @using DevExpress.Blazor *@
+@using DevExpress.Blazor.RichEdit
+
+@* Footer-specific Rich Text Editor Component *@
+<div class="footer-editor-container">
+    <div class="editor-header">
+        <h5 class="text-muted mb-2">Footer Content Editor</h5>
+        <p class="small text-muted">Use the editor below to customize your website's footer content.</p>
+    </div>
+
+    <DxRichEdit @bind-Markup="Content"
+               @bind-Markup:after="OnContentChanged"
+               Height="200px"
+               Width="100%"
+               CssClass="footer-rich-editor"
+               @ref="richEditRef" />
+
+    @* Footer preview section *@
+    <div class="footer-preview mt-3">
+        <div class="preview-header">
+            <small class="text-muted">Live Preview:</small>
+        </div>
+        <div class="preview-content p-2 border rounded bg-light" style="min-height: 60px;">
+            @if (!string.IsNullOrEmpty(Content))
+            {
+                @((MarkupString)Content)
+            }
+            else
+            {
+                <em class="text-muted">Footer content will appear here...</em>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .footer-editor-container {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .editor-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .footer-rich-editor {
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .preview-content {
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .preview-header {
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+@code {
+    private DevExpress.Blazor.RichEdit.DxRichEdit? richEditRef;
+
+    [Parameter] public string Content { get; set; } = "";
+    [Parameter] public EventCallback<string> ContentChanged { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Console.WriteLine($"FooterRichTextEditor OnInitializedAsync - Content: '{Content}', Length: {Content?.Length ?? 0}");
+
+        // Initialize with default content if empty
+        if (string.IsNullOrEmpty(Content))
+        {
+            Content = GetDefaultFooterContent();
+            await ContentChanged.InvokeAsync(Content);
+            Console.WriteLine($"Set default content: '{Content}'");
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Console.WriteLine($"FooterRichTextEditor OnParametersSetAsync - Content: '{Content}', Length: {Content?.Length ?? 0}");
+        await base.OnParametersSetAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("Footer DxRichEdit editor (HTML Markup) initialized successfully");
+            await InitializeFooterEditor();
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task InitializeFooterEditor()
+    {
+        // Footer-specific initialization
+        await Task.CompletedTask;
+    }
+
+    private async Task OnContentChanged()
+    {
+        Console.WriteLine($"FooterRichTextEditor OnContentChanged - Content: '{Content}', Length: {Content?.Length ?? 0}");
+        await ContentChanged.InvokeAsync(Content);
+    }
+
+    /// <summary>
+    /// Forces the DxRichEdit to save its current state to Content
+    /// </summary>
+    public async Task SaveCurrentStateAsync()
+    {
+        Console.WriteLine("FooterRichTextEditor SaveCurrentStateAsync called");
+        if (richEditRef != null)
+        {
+            await richEditRef.SaveDocumentAsync();
+            Console.WriteLine($"After SaveDocumentAsync - Content: '{Content}', Length: {Content?.Length ?? 0}");
+            await ContentChanged.InvokeAsync(Content);
+        }
+        else
+        {
+            Console.WriteLine("richEditRef is null in SaveCurrentStateAsync");
+        }
+    }
+
+    /// <summary>
+    /// Gets the current content from the editor
+    /// </summary>
+    public string GetCurrentContent()
+    {
+        Console.WriteLine($"FooterRichTextEditor GetCurrentContent - Content: '{Content}', Length: {Content?.Length ?? 0}");
+        return Content ?? "";
+    }
+
+    /// <summary>
+    /// Sets content and forces a refresh
+    /// </summary>
+    public async Task SetContentAsync(string newContent)
+    {
+        Console.WriteLine($"FooterRichTextEditor SetContentAsync - Old: '{Content}' -> New: '{newContent}'");
+        Content = newContent;
+        await ContentChanged.InvokeAsync(Content);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Clears the content
+    /// </summary>
+    public async Task ClearAsync()
+    {
+        Content = "";
+        await ContentChanged.InvokeAsync(Content);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Resets to default content
+    /// </summary>
+    public async Task ResetToDefaultAsync()
+    {
+        Content = GetDefaultFooterContent();
+        await ContentChanged.InvokeAsync(Content);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Gets default HTML footer content
+    /// </summary>
+    private static string GetDefaultFooterContent()
+    {
+        return "<p>&copy; 2025 Cursillo Web. All rights reserved.</p>";
+    }
+
+    /// <summary>
+    /// Gets plain text from HTML content
+    /// </summary>
+    public string GetPlainText()
+    {
+        if (string.IsNullOrEmpty(Content))
+            return "";
+
+        try
+        {
+            // Simple HTML to plain text conversion - remove HTML tags
+            var plainText = System.Text.RegularExpressions.Regex.Replace(Content, "<[^>]*>", "");
+            return plainText.Trim();
+        }
+        catch
+        {
+            return "";
+        }
+    }
+}

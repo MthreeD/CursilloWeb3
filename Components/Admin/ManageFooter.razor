@@ -1,0 +1,305 @@
+@page "/admin/manage-footer"
+@using CursilloWeb.Services
+@using CursilloWeb.Components.Admin
+@inject ContentService ContentService
+
+<PageTitle>Manage Footer Content</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="text-primary">Footer Management</h2>
+                <div class="btn-toolbar">
+                    <button type="button" 
+                            class="btn btn-success me-2" 
+                            @onclick="SaveFooterContent"
+                            disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Save Footer
+                    </button>
+                    <button type="button" 
+                            class="btn btn-outline-secondary me-2" 
+                            @onclick="ResetFooter">
+                        Reset to Default
+                    </button>
+                    <button type="button" 
+                            class="btn btn-outline-danger" 
+                            @onclick="ClearFooter">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="alert @alertClass alert-dismissible fade show" role="alert">
+                    @statusMessage
+                    <button type="button" class="btn-close" @onclick="() => statusMessage = string.Empty"></button>
+                </div>
+            }
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <FooterRichTextEditor @bind-Content="footerContent"
+                                        @ref="footerEditor" />
+                </div>
+            </div>
+
+            @* Additional footer management tools *@
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">Footer Statistics</h6>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li><strong>Character Count:</strong> @GetCharacterCount()</li>
+                                <li><strong>Word Count:</strong> @GetWordCount()</li>
+                                <li><strong>Links:</strong> @GetLinkCount()</li>
+                                <li><strong>Last Updated:</strong> @lastUpdated.ToString("MMM dd, yyyy 'at' h:mm tt")</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0">Quick Actions</h6>
+                        </div>
+                        <div class="card-body">
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2"
+                                    @onclick="AddContactInfo">
+                                Add Contact Info
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm me-2 mb-2"
+                                    @onclick="AddSocialLinks">
+                                Add Social Links
+                            </button>
+                            <button type="button" class="btn btn-outline-primary btn-sm mb-2"
+                                    @onclick="AddCopyright">
+                                Add Copyright
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private FooterRichTextEditor? footerEditor;
+    private string footerContent = "";
+    private bool isLoading = false;
+    private string statusMessage = "";
+    private string alertClass = "alert-success";
+    private DateTime lastUpdated = DateTime.Now;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadFooterContent();
+    }
+
+    private async Task LoadFooterContent()
+    {
+        try
+        {
+            Console.WriteLine("=== ManageFooter LoadFooterContent START ===");
+
+            // Load HTML content for footer
+            var loadedContent = await ContentService.GetContentAsync("Footer");
+            Console.WriteLine($"Loaded from database: '{loadedContent}', Length: {loadedContent?.Length ?? 0}");
+
+            footerContent = loadedContent ?? "";
+            Console.WriteLine($"Set footerContent to: '{footerContent}', Length: {footerContent?.Length ?? 0}");
+            Console.WriteLine("=== ManageFooter LoadFooterContent END ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"=== ManageFooter LoadFooterContent ERROR ===");
+            Console.WriteLine($"Error: {ex.Message}");
+            ShowMessage($"Error loading footer content: {ex.Message}", "alert-danger");
+        }
+    }
+
+    private async Task SaveFooterContent()
+    {
+        isLoading = true;
+        try
+        {
+            Console.WriteLine($"=== ManageFooter SaveFooterContent START ===");
+            Console.WriteLine($"Initial footerContent: '{footerContent}', Length: {footerContent?.Length ?? 0}");
+
+            string contentToSave = "";
+
+            if (footerEditor != null)
+            {
+                Console.WriteLine("Forcing FooterRichTextEditor to save current state...");
+                await footerEditor.SaveCurrentStateAsync();
+
+                // Get the updated content from the editor
+                contentToSave = footerEditor.GetCurrentContent();
+                Console.WriteLine($"Content from editor: '{contentToSave}', Length: {contentToSave?.Length ?? 0}");
+
+                // Update the bound variable
+                footerContent = contentToSave ?? "";
+            }
+            else
+            {
+                Console.WriteLine("WARNING: footerEditor is null!");
+                contentToSave = footerContent ?? "";
+            }
+
+            if (string.IsNullOrEmpty(contentToSave))
+            {
+                ShowMessage("No content to save. Please enter some content in the editor.", "alert-warning");
+                Console.WriteLine("ABORT: No content to save");
+                return;
+            }
+
+            // Save HTML content for footer
+            Console.WriteLine($"Saving to database: '{contentToSave}'");
+            await ContentService.UpdateContentAsync("Footer", contentToSave);
+            Console.WriteLine("Saved to database successfully");
+
+            // Verify the save by reading it back
+            var verificationContent = await ContentService.GetContentAsync("Footer");
+            Console.WriteLine($"Verification read from DB: '{verificationContent}', Length: {verificationContent?.Length ?? 0}");
+
+            // Update local variable with what was actually saved
+            footerContent = verificationContent ?? "";
+
+            lastUpdated = DateTime.Now;
+            ShowMessage("Footer content saved successfully!", "alert-success");
+            Console.WriteLine("=== ManageFooter SaveFooterContent SUCCESS ===");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"=== ManageFooter SaveFooterContent ERROR ===");
+            Console.WriteLine($"Error: {ex.Message}");
+            ShowMessage($"Error saving footer: {ex.Message}", "alert-danger");
+        }
+        finally
+        {
+            isLoading = false;
+            Console.WriteLine("=== ManageFooter SaveFooterContent END ===");
+        }
+    }
+
+    private async Task OnFooterContentChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ResetFooter()
+    {
+        if (footerEditor != null)
+        {
+            await footerEditor.ResetToDefaultAsync();
+            ShowMessage("Footer reset to default content.", "alert-info");
+        }
+    }
+
+    private async Task ClearFooter()
+    {
+        if (footerEditor != null)
+        {
+            await footerEditor.ClearAsync();
+            ShowMessage("Footer content cleared.", "alert-warning");
+        }
+    }
+
+    private async Task AddContactInfo()
+    {
+        var contactHTML = @"<div style=""text-align: center;"">
+            <p><strong>Contact Information</strong></p>
+            <p>Phone: (555) 123-4567 | Email: <a href=""mailto:info@cursilloweb.com"">info@cursilloweb.com</a></p>
+            <p>Address: 123 Faith Street, Your City, ST 12345</p>
+        </div>";
+
+        if (footerEditor != null)
+        {
+            await footerEditor.SetContentAsync(contactHTML);
+            ShowMessage("Contact information added to footer.", "alert-success");
+        }
+    }
+
+    private async Task AddSocialLinks()
+    {
+        var socialHTML = @"<div style=""text-align: center;"">
+            <p><strong>Follow Us</strong></p>
+            <p>
+                <a href=""#"">Facebook</a> | 
+                <a href=""#"">Twitter</a> | 
+                <a href=""#"">Instagram</a> | 
+                <a href=""#"">YouTube</a>
+            </p>
+        </div>";
+
+        if (footerEditor != null)
+        {
+            await footerEditor.SetContentAsync(socialHTML);
+            ShowMessage("Social media links added to footer.", "alert-success");
+        }
+    }
+
+    private async Task AddCopyright()
+    {
+        var copyrightHTML = $@"<div style=""text-align: center;"">
+            <p>&copy; {DateTime.Now.Year} Cursillo Web. All rights reserved.</p>
+            <p><a href=""/privacy"">Privacy Policy</a> | <a href=""/terms"">Terms of Service</a></p>
+        </div>";
+
+        if (footerEditor != null)
+        {
+            await footerEditor.SetContentAsync(copyrightHTML);
+            ShowMessage("Copyright information added to footer.", "alert-success");
+        }
+    }
+
+    private void ShowMessage(string message, string cssClass)
+    {
+        statusMessage = message;
+        alertClass = cssClass;
+        StateHasChanged();
+    }
+
+    private int GetCharacterCount()
+    {
+        if (footerEditor != null)
+        {
+            return footerEditor.GetPlainText().Length;
+        }
+        return footerContent?.Length ?? 0;
+    }
+
+    private int GetWordCount()
+    {
+        if (footerEditor != null)
+        {
+            var plainText = footerEditor.GetPlainText();
+            return string.IsNullOrWhiteSpace(plainText) ? 0 : plainText.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+        }
+        return 0;
+    }
+
+    private int GetLinkCount()
+    {
+        return System.Text.RegularExpressions.Regex.Matches(footerContent ?? "", @"<a\s+[^>]*href\s*=", System.Text.RegularExpressions.RegexOptions.IgnoreCase).Count;
+    }
+
+    private static string GetDefaultFooterContent()
+    {
+        return @"<div style=""text-align: center;"">
+            <p><strong>Cursillo Web</strong></p>
+            <p>&copy; 2025 Cursillo Web. All rights reserved.</p>
+            <p><a href=""mailto:contact@cursilloweb.com"">Contact Us</a> | <a href=""/privacy"">Privacy Policy</a></p>
+        </div>";
+    }
+}

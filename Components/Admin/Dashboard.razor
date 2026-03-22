@@ -2,7 +2,7 @@
 @rendermode InteractiveServer
 @* @using Microsoft.AspNetCore.Authorization *@
 @using CursilloWeb.Data
-@using DevExpress.Blazor
+
 @* @attribute [Authorize] *@
 @inject CursilloWeb.Services.ArticleService ArticleService
 
@@ -22,23 +22,30 @@
 
 <div class="row mb-4">
     <div class="col-md-6">
-        <DxCard>
-            <HeaderTemplate>
-                <DxCardHeader>
-                    <h5 class="card-title">Site Content</h5>
-                </DxCardHeader>
-            </HeaderTemplate>
-            <BodyTemplate>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Site Content</h5>
+            </div>
+            <div class="card-body">
                 <p>Manage global sections like Header and Footer.</p>
                 <DxButton Text="Edit Header" 
                           RenderStyle="ButtonRenderStyle.Secondary" 
                           Click="@(() => Navigation.NavigateTo("admin/content/Header"))"
-                          CssClass="me-2" />
-                <DxButton Text="Edit Footer" 
+                          CssClass="me-2 mb-2" />
+                <DxButton Text="Edit Footer (Basic)" 
                           RenderStyle="ButtonRenderStyle.Secondary" 
-                          Click="@(() => Navigation.NavigateTo("admin/content/Footer"))" />
-            </BodyTemplate>
-        </DxCard>
+                          Click="@(() => Navigation.NavigateTo("admin/content/Footer"))"
+                          CssClass="me-2 mb-2" />
+                <br />
+                <DxButton Text="Manage Footer (Advanced)" 
+                          RenderStyle="ButtonRenderStyle.Primary" 
+                          RenderStyleMode="ButtonRenderStyleMode.Outline"
+                          IconCssClass="bi bi-gear"
+                          Click="@(() => Navigation.NavigateTo("admin/manage-footer"))"
+                          CssClass="me-2" />
+                <small class="text-muted d-block mt-1">Full footer management with live preview and templates</small>
+            </div>
+        </div>
     </div>
     <div class="col-md-6">
          <!-- Placeholder for other admin tasks -->
@@ -69,11 +76,11 @@ else
                         var article = (Article)context.DataItem;
                         if (article.IsVisible)
                         {
-                            <DxBadge BackgroundColor="green" Text="Visible" />
+                            <span class="badge bg-success">Visible</span>
                         }
                         else
                         {
-                            <DxBadge BackgroundColor="gray" Text="Hidden" />
+                            <span class="badge bg-secondary">Hidden</span>
                         }
                     }
                 </CellDisplayTemplate>

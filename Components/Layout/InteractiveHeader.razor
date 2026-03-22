@@ -1,5 +1,6 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 @implements IDisposable
 
 <header id="main-site-header" class="site-header d-flex justify-content-between align-items-center position-relative">
@@ -19,41 +20,81 @@
 
     <!-- Hamburger menu button positioned 10px from right, vertically centered, on top -->
     <div id="hamburger-menu-btn"
-         class="position-absolute"
+         class="position-absolute hamburger-container"
          style="right: 10px; top: 50%; transform: translateY(-50%); z-index: 1050;">
-        <DxButton IconCssClass="bi bi-list"
-                  RenderStyle="ButtonRenderStyle.Secondary"
-                  Click="ToggleFlyout" />
+        <DxButton IconCssClass="bi bi-list fs-5"
+                  RenderStyle="ButtonRenderStyle.None"
+                  Click="ToggleFlyout"
+                  title="Open Navigation Menu"
+                  CssClass="hamburger-btn" />
     </div>
 </header>
 
-<!-- DxFlyout Control placed right under the hamburger menu -->
+<!-- DxFlyout Control positioned to slide from left under hamburger menu -->
 <DxFlyout @bind-IsOpen="isFlyoutOpen"
           PositionTarget="#hamburger-menu-btn"
-          Placement="FlyoutPlacement.Bottom"
-          Width="250px"
-          CloseOnOutsideClick="true">
+          Placement="FlyoutPlacement.BottomLeft"
+          Width="280px"
+          CloseOnOutsideClick="true"
+          CssClass="navigation-flyout">
     <BodyTextTemplate>
-        <div class="p-3">
-            <h5 class="mb-3 border-bottom pb-2 text-primary">Navigation Menu</h5>
-            <DxAccordion ExpandMode="AccordionExpandMode.SingleOrNone">
-                <Items>
-                    <DxAccordionItem Text="Home" Click="@(() => NavigationManager.NavigateTo("/"))" />
-                    <DxAccordionItem Text="Articles">
-                        <Items>
-                            <DxAccordionItem Text="View All" Click="@(() => NavigationManager.NavigateTo("/"))" />
-                        </Items>
-                    </DxAccordionItem>
-                    <DxAccordionItem Text="Admin & Editing">
-                        <Items>
-                            <DxAccordionItem Text="Dashboard" Click="@(() => NavigationManager.NavigateTo("/admin"))" />
-                            <DxAccordionItem Text="New Article" Click="@(() => NavigationManager.NavigateTo("/admin/article/new"))" />
-                            <DxAccordionItem Text="Edit Header" Click="@(() => NavigationManager.NavigateTo("/admin/content/Header"))" />
-                            <DxAccordionItem Text="Edit Footer" Click="@(() => NavigationManager.NavigateTo("/admin/content/Footer"))" />
-                        </Items>
-                    </DxAccordionItem>
-                </Items>
-            </DxAccordion>
+        <div class="navigation-menu-container">
+            <div class="navigation-header">
+                <h5 class="mb-0 text-white fw-bold">
+                    Navigation Menu
+                </h5>
+            </div>
+            <div class="navigation-content">
+                <DxAccordion ExpandMode="AccordionExpandMode.SingleOrNone" 
+                            CssClass="navigation-accordion">
+                    <Items>
+                        <DxAccordionItem Text="🏠 Home" 
+                                        Click="@(() => NavigateAndClose("/"))" 
+                                        CssClass="nav-item-home" />
+                        <DxAccordionItem Text="📋 Test Page" 
+                                        Click="@(() => NavigateAndClose("/test"))" 
+                                        CssClass="nav-item-test" />
+                        <DxAccordionItem Text="📄 Page 2" 
+                                        Click="@(() => NavigateAndClose("/page2"))" 
+                                        CssClass="nav-item-page2" />
+                        <DxAccordionItem Text="🖼️ Images"
+                                        Click="@(() => NavigateAndClose("/upload-image"))" 
+                                        CssClass="nav-item-images" />
+                        <DxAccordionItem Text="📰 Articles" CssClass="nav-item-articles">
+                            <Items>
+                                <DxAccordionItem Text="📖 View All" 
+                                               Click="@(() => NavigateAndClose("/"))" />
+                            </Items>
+                        </DxAccordionItem>
+                        <DxAccordionItem Text="⚙️ Admin & Editing" CssClass="nav-item-admin">
+                            <Items>
+                                <DxAccordionItem Text="🎛️ Dashboard" 
+                                               Click="@(() => NavigateAndClose("/admin"))" />
+                                <DxAccordionItem Text="📝 New Article" 
+                                               Click="@(() => NavigateAndClose("/admin/article/new"))" />
+                                <DxAccordionItem Text="🔧 Edit Header" 
+                                               Click="@(() => NavigateAndClose("/admin/content/Header"))" />
+                                <DxAccordionItem Text="🔧 Edit Footer" 
+                                               Click="@(() => NavigateAndClose("/admin/content/Footer"))" />
+                            </Items>
+                        </DxAccordionItem>
+                        <DxAccordionItem Text="🎨 Themes" CssClass="nav-item-themes">
+                            <Items>
+                                <DxAccordionItem Text="🍇 Blazing Berry" 
+                                               Click="@(() => SwitchTheme("blazing-berry"))" />
+                                <DxAccordionItem Text="🌙 Blazing Dark" 
+                                               Click="@(() => SwitchTheme("blazing-dark"))" />
+                                <DxAccordionItem Text="⚪ Office White" 
+                                               Click="@(() => SwitchTheme("office-white"))" />
+                                <DxAccordionItem Text="🟪 Purple" 
+                                               Click="@(() => SwitchTheme("purple"))" />
+                                <DxAccordionItem Text="⬜ Default" 
+                                               Click="@(() => SwitchTheme("bootstrap-external"))" />
+                            </Items>
+                        </DxAccordionItem>
+                    </Items>
+                </DxAccordion>
+            </div>
         </div>
     </BodyTextTemplate>
 </DxFlyout>
@@ -100,6 +141,12 @@
         isFlyoutOpen = !isFlyoutOpen;
     }
 
+    private void NavigateAndClose(string url)
+    {
+        isFlyoutOpen = false;
+        NavigationManager.NavigateTo(url);
+    }
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
         if (isFlyoutOpen)
@@ -126,5 +173,10 @@
     private void CloseTestPopup()
     {
         TestPopupVisible = false;
+    }
+
+    private async Task SwitchTheme(string themeName)
+    {
+        await JSRuntime.InvokeVoidAsync("switchTheme", themeName);
     }
 }

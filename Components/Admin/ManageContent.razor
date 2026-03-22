@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using DevExpress.Blazor.RichEdit
 @using CursilloWeb.Data
+@using CursilloWeb.Components.Admin
 @inject CursilloWeb.Services.ContentService ContentService
 @inject NavigationManager Navigation
 
@@ -24,14 +25,37 @@
                 Use the editor below to customize the @Section content.
             </div>
 
-            <DxRichEdit @ref="richEdit"
-                        @bind-DocumentContent="FileContent" 
-                        DocumentFormat="DevExpress.Blazor.RichEdit.DocumentFormat.Rtf" 
-                        Height="600px" 
-                        CssClass="w-100" />
+            @if (Section.Equals("Footer", StringComparison.OrdinalIgnoreCase))
+            {
+                @* Use the specialized FooterRichTextEditor for footer content *@
+                <FooterRichTextEditor @bind-Content="HtmlContent"
+                                    @bind-Content:after="OnFooterContentChanged"
+                                    @ref="footerEditor" />
+            }
+            else
+            {
+                @* Use the standard DxRichEdit for other content *@
+                <DxRichEdit @ref="richEdit"
+                            @bind-Markup="HtmlContent"
+                            Height="600px" 
+                            CssClass="w-100" />
+            }
         </div>
 
-        <button class="btn btn-primary" @onclick="SaveContent">Save Content</button>
+        <button class="btn btn-primary" @onclick="SaveContent" disabled="@IsSaving">
+            @if (IsSaving)
+            {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            Save Content
+        </button>
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert @StatusClass mt-3">
+                @StatusMessage
+            </div>
+        }
     }
 </div>
 
@@ -39,37 +63,137 @@
     [Parameter] public string Section { get; set; } = "Header";
 
     private DxRichEdit? richEdit;
-    private byte[] FileContent = Array.Empty<byte>();
+    private FooterRichTextEditor? footerEditor;
+    private string HtmlContent = "";
     private bool IsLoading = true;
+    private bool IsSaving = false;
+    private string StatusMessage = "";
+    private string StatusClass = "alert-success";
 
     protected override async Task OnParametersSetAsync()
     {
         IsLoading = true;
-        string content = await ContentService.GetRichTextContentAsync(Section);
-        if (!string.IsNullOrEmpty(content))
+        StatusMessage = "";
+
+        try
         {
-            FileContent = System.Text.Encoding.UTF8.GetBytes(content);
+            Console.WriteLine($"=== OnParametersSetAsync START for {Section} ===");
+
+            // Load HTML content for all sections (including footer)
+            var loadedContent = await ContentService.GetContentAsync(Section);
+            Console.WriteLine($"Loaded from database: '{loadedContent}', Length: {loadedContent?.Length ?? 0}");
+
+            HtmlContent = loadedContent ?? "";
+
+            Console.WriteLine($"Set HtmlContent to: '{HtmlContent}', Length: {HtmlContent?.Length ?? 0}");
+            Console.WriteLine($"=== OnParametersSetAsync END for {Section} ===");
         }
-        else 
+        catch (Exception ex)
         {
-            // If RichTextContent is empty, try getting HtmlContent as fallback
-            string htmlContent = await ContentService.GetContentAsync(Section);
-            if (!string.IsNullOrEmpty(htmlContent)) 
-            {
-                FileContent = System.Text.Encoding.UTF8.GetBytes(htmlContent);
-            }
+            Console.WriteLine($"=== OnParametersSetAsync ERROR for {Section} ===");
+            Console.WriteLine($"Error: {ex.Message}");
+            StatusMessage = $"Error loading content: {ex.Message}";
+            StatusClass = "alert-danger";
         }
-        IsLoading = false;
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task OnFooterContentChanged()
+    {
+        Console.WriteLine($"OnFooterContentChanged called - HtmlContent length: {HtmlContent?.Length ?? 0}");
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SaveContent()
     {
-        if (richEdit != null)
+        IsSaving = true;
+        StatusMessage = "";
+
+        try
         {
-            await richEdit.SaveDocumentAsync();
+            Console.WriteLine($"=== SaveContent START for {Section} ===");
+            Console.WriteLine($"Initial HtmlContent: '{HtmlContent}', Length: {HtmlContent?.Length ?? 0}");
+
+            string? contentToSave = "";
+
+            if (Section.Equals("Footer", StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine("Processing Footer section...");
+
+                if (footerEditor != null)
+                {
+                    // Force the footer editor to save its current state
+                    Console.WriteLine("Calling SaveCurrentStateAsync on footer editor...");
+                    await footerEditor.SaveCurrentStateAsync();
+
+                    // Get the current content from the editor
+                    contentToSave = footerEditor.GetCurrentContent() ?? "";
+                    Console.WriteLine($"Content from footer editor: '{contentToSave}', Length: {contentToSave?.Length ?? 0}");
+
+                    // Update the bound variable
+                    HtmlContent = contentToSave ?? "";
+                }
+                else
+                {
+                    Console.WriteLine("WARNING: footerEditor is null!");
+                    contentToSave = HtmlContent ?? "";
+                }
+            }
+            else
+            {
+                Console.WriteLine($"Processing {Section} section...");
+
+                if (richEdit != null)
+                {
+                    Console.WriteLine("Calling SaveDocumentAsync on rich edit...");
+                    await richEdit.SaveDocumentAsync();
+                }
+
+                contentToSave = HtmlContent ?? "";
+            }
+
+            Console.WriteLine($"Content to save: '{contentToSave}', Length: {contentToSave?.Length ?? 0}");
+
+            if (string.IsNullOrEmpty(contentToSave))
+            {
+                StatusMessage = "No content to save. Please enter some content in the editor.";
+                StatusClass = "alert-warning";
+                Console.WriteLine("ABORT: No content to save");
+                return;
+            }
+
+            // Save HTML content to database
+            Console.WriteLine("Saving content to database...");
+            await ContentService.UpdateContentAsync(Section, contentToSave ?? "");
+            Console.WriteLine("Content saved to database successfully");
+
+            // Verify the save by reading it back
+            var verificationContent = await ContentService.GetContentAsync(Section);
+            Console.WriteLine($"Verification read from DB: '{verificationContent}', Length: {verificationContent?.Length ?? 0}");
+
+            // Update the local variable with what was actually saved
+            HtmlContent = verificationContent ?? "";
+
+            StatusMessage = $"{Section} content saved successfully!";
+            StatusClass = "alert-success";
+
+            Console.WriteLine($"=== SaveContent SUCCESS for {Section} ===");
         }
-        string richTextContent = System.Text.Encoding.UTF8.GetString(FileContent);
-        await ContentService.UpdateRichTextContentAsync(Section, richTextContent);
-        Navigation.NavigateTo("/admin");
+        catch (Exception ex)
+        {
+            Console.WriteLine($"=== SaveContent ERROR for {Section} ===");
+            Console.WriteLine($"Error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            StatusMessage = $"Error saving content: {ex.Message}";
+            StatusClass = "alert-danger";
+        }
+        finally
+        {
+            IsSaving = false;
+            Console.WriteLine($"=== SaveContent END for {Section} ===");
+        }
     }
 }

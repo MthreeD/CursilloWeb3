@@ -14,7 +14,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
         await using var context = await contextFactory.CreateDbContextAsync();
         
         var contentBlocks = await context.ContentBlocks
-            .Where(cb => !string.IsNullOrEmpty(cb.HtmlContent) && string.IsNullOrEmpty(cb.RichTextContent))
+            .Where(cb => !string.IsNullOrEmpty(cb.HtmlContent) && string.IsNullOrEmpty(cb.RTFContent))
             .ToListAsync();
 
         foreach (var block in contentBlocks)
@@ -22,7 +22,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
             try
             {
                 var richTextJson = ConvertHtmlToRichText(block.HtmlContent);
-                block.RichTextContent = richTextJson;
+                block.RTFContent = richTextJson;
                 block.LastUpdated = DateTime.Now;
                 Console.WriteLine($"Converted content for section: {block.Section}");
             }
@@ -30,7 +30,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
             {
                 Console.WriteLine($"Error converting content for section {block.Section}: {ex.Message}");
                 // Set a basic rich text structure for failed conversions
-                block.RichTextContent = CreateBasicRichTextStructure(block.HtmlContent);
+                block.RTFContent = CreateBasicRichTextStructure(block.HtmlContent);
             }
         }
 
@@ -38,7 +38,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
         Console.WriteLine($"Converted {contentBlocks.Count} content blocks to RichText format.");
     }
 
-    private static string ConvertHtmlToRichText(string htmlContent)
+    private static string ConvertHtmlToRichText(string? htmlContent)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
         {
@@ -266,8 +266,10 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
         });
     }
 
-    private static string CreateBasicRichTextStructure(string text)
+    private static string CreateBasicRichTextStructure(string? text)
     {
+        if (string.IsNullOrWhiteSpace(text)) return CreateEmptyRichTextStructure();
+        
         // Strip HTML tags for basic fallback
         var plainText = Regex.Replace(text, "<[^>]*>", "").Trim();
         

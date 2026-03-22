@@ -29,7 +29,8 @@ h6 {
     background-color: white;
     /* Or use primary color */
     border-bottom: 3px solid var(--secondary-color);
-    padding: 1rem;
+    padding: 0 1rem;
+    height: 1.25in;
     position: relative;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
@@ -38,7 +39,10 @@ h6 {
     background-color: var(--primary-color);
     color: white;
     border-top: 3px solid var(--secondary-color);
-    padding: 2rem;
+    padding: 0 1rem;
+    height: 1.25in;
+    display: flex;
+    align-items: center;
     margin-top: 3rem;
 }
 

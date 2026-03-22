@@ -3,7 +3,7 @@
 @inject CursilloWeb.Services.ArticleService ArticleService
 @inject NavigationManager Navigation
 @using CursilloWeb.Data
-@using DevExpress.Blazor
+@* @using DevExpress.Blazor *@
 
 <PageTitle>@(Article?.Title ?? "Article") - Cursillo</PageTitle>
 
@@ -16,29 +16,28 @@
     }
     else if (Article == null)
     {
-        <DxAlert ShowIcon="true" Title="Article Not Found" CssClass="my-4">
-            Article not found. <a href="/">Return to Home</a>
-        </DxAlert>
+        <div class="alert alert-warning my-4" role="alert">
+            <h4 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Article Not Found</h4>
+            <p>Article not found. <a href="/" class="alert-link">Return to Home</a></p>
+        </div>
     }
     else
     {
-        <DxCard CssClass="my-4">
-            <HeaderTemplate>
-                <DxCardHeader>
-                    <h1 class="display-4 text-primary mb-3">@Article.Title</h1>
-                    <div class="text-muted">
-                        <DxIcon IconName="bi bi-calendar" CssClass="me-2" /> @Article.CreatedDate.ToLongDateString()
-                    </div>
-                </DxCardHeader>
-            </HeaderTemplate>
-            <BodyTemplate>
+        <div class="card my-4 border-0 shadow-sm">
+            <div class="card-header bg-white pb-0 border-0">
+                <h1 class="display-4 text-primary mb-3">@Article.Title</h1>
+                <div class="text-muted pb-3">
+                    <i class="bi bi-calendar me-2"></i> @Article.CreatedDate.ToLongDateString()
+                </div>
+            </div>
+            <div class="card-body">
                 @if (!string.IsNullOrEmpty(Article.ImageUrl))
                 {
                     <div class="mb-4 text-center">
-                        <DxImage Source="@Article.ImageUrl" 
-                                 AlternateText="@Article.Title" 
-                                 CssClass="img-fluid rounded" 
-                                 style="max-height: 500px;" />
+                        <img src="@Article.ImageUrl" 
+                             alt="@Article.Title" 
+                             class="img-fluid rounded" 
+                             style="max-height: 500px;" />
                     </div>
                 }
 
@@ -54,8 +53,8 @@
                               NavigateUrl="/" 
                               IconCssClass="bi bi-arrow-left" />
                 </div>
-            </BodyTemplate>
-        </DxCard>
+            </div>
+        </div>
     }
 </div>
 

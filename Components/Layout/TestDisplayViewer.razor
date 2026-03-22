@@ -1,0 +1,60 @@
+@rendermode InteractiveServer
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@using DevExpress.Blazor.RichEdit
+@using DevExpress.Blazor.Office
+
+@inject IDbContextFactory<ApplicationDbContext> DbContextFactory
+
+@if (!IsLoading && TestContentBytes != null)
+{
+    <div class="test-display-viewer-container">
+        <DxRichEdit ReadOnly="true"
+                    BarMode="BarMode.None"
+                    ViewType="ViewType.Simple"
+                    DocumentFormat="DocumentFormat.Html"
+                    DocumentContent="@TestContentBytes"
+                    CssClass="w-100 test-rich-edit" />
+    </div>
+}
+
+<style>
+    .test-display-viewer-container {
+        pointer-events: none; /* Make click interactions impossible */
+        width: 100%;
+        background-color: #fff;
+    }
+    
+    /* Hide the DevExpress Ribbon/Toolbar for this specific control */
+    .test-display-viewer-container .dx-richedit-ribbon,
+    .test-display-viewer-container .dxbr-ribbon,
+    .test-display-viewer-container .dx-ribbon {
+        display: none !important;
+    }
+</style>
+
+@code {
+    private bool IsLoading = true;
+    private byte[]? TestContentBytes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var testEntity = await dbContext.Tests.FirstOrDefaultAsync();
+            if (testEntity != null && !string.IsNullOrEmpty(testEntity.HtmlTest))
+            {
+                TestContentBytes = System.Text.Encoding.UTF8.GetBytes(testEntity.HtmlTest);
+            }
+        }
+        catch
+        {
+            // Ignore for display
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

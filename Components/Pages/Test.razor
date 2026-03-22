@@ -1,0 +1,206 @@
+@page "/test"
+@rendermode InteractiveServer
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@* @using DevExpress.Blazor *@
+@using DevExpress.Blazor.RichEdit
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Test Page</PageTitle>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Test Page</h2>
+        <div class="d-flex align-items-center" style="gap: 10px">
+            @if (!IsLoading)
+            {
+                <DxButton Text="Save" 
+                          RenderStyle="ButtonRenderStyle.Primary"
+                          Click="@SaveTest"
+                          Enabled="@(!IsSaving)" />
+
+                @if (IsSaving)
+                {
+                    <DxButton RenderStyle="ButtonRenderStyle.Secondary"
+                              Enabled="false">
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            Saving...
+                    </DxButton>
+                }
+            }
+            <DxButton Text="Back to Home" 
+                      CssClass="btn btn-outline-primary"
+                      Click="@NavigateToHome" />
+        </div>
+    </div>
+
+    @if (IsLoading)
+    {
+        <DxLoadingPanel Visible="true" />
+    }
+    else
+    {
+        <div class="mb-3">
+            <DxFormLayout>
+                <DxFormLayoutItem Caption="Text Box:" ColSpanMd="12">
+                    <Template>
+                        <DxTextBox @bind-Text="CurrentTest.TextBoxText"
+                                   CssClass="w-100"
+                                   Placeholder="Enter your text here..." />
+                    </Template>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="Rich Text Content:" ColSpanMd="12">
+                    <Template>
+                        <div style="width: 8.5in; border: 1px solid #ccc;">
+                            <DxRichEdit @ref="richEdit"
+                                        DocumentFormat="DocumentFormat.Html"
+                                        @bind-DocumentContent="FileContentAsBytes"
+                                        Height="calc(1.5in + 60px)" 
+                                        CustomizeRibbon="OnCustomizeRibbon"
+                                        CssClass="w-100" />
+                        </div>
+                    </Template>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="HTML Display:" ColSpanMd="12">
+                    <Template>
+                        <div style="width: 8.5in; height: calc(1.5in + 60px); border: 1px solid #ccc; overflow-y: auto; background-color: #fff; padding: 0.5rem;">
+                            @if (!string.IsNullOrEmpty(CurrentTest.HtmlTest))
+                            {
+                                @((MarkupString)CurrentTest.HtmlTest)
+                            }
+                            else
+                            {
+                                <span class="text-muted">No content to display</span>
+                            }
+                        </div>
+                    </Template>
+                </DxFormLayoutItem>
+            </DxFormLayout>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <div class="mt-3">
+                <div class="alert @(IsError ? "alert-danger" : "alert-success")" role="alert">
+                    @Message
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" @onclick="@(() => Message = string.Empty)"></button>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private CursilloWeb.Data.Test CurrentTest = new CursilloWeb.Data.Test();
+    private DxRichEdit? richEdit;    
+    private bool IsLoading = false;
+    private bool IsSaving = false;
+    private string Message = string.Empty;
+    private bool IsError = false;
+
+    // Use a backing byte array required by DxRichEdit to serialize HTML
+    private byte[]? _fileContentAsBytes;
+    private byte[]? FileContentAsBytes
+    {
+        get
+        {
+            if (_fileContentAsBytes == null && !string.IsNullOrEmpty(CurrentTest.HtmlTest))
+                _fileContentAsBytes = System.Text.Encoding.UTF8.GetBytes(CurrentTest.HtmlTest);
+
+            return _fileContentAsBytes;
+        }
+        set
+        {
+            _fileContentAsBytes = value;
+            if (_fileContentAsBytes != null)
+                CurrentTest.HtmlTest = System.Text.Encoding.UTF8.GetString(_fileContentAsBytes);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load existing test data if any
+        await LoadTest();
+    }
+
+    private async Task LoadTest()
+    {
+        try
+        {
+            IsLoading = true;
+            var existingTest = await DbContext.Tests.FirstOrDefaultAsync();
+            if (existingTest != null)
+            {
+                CurrentTest = existingTest;
+            }
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error loading test data: {ex.Message}";
+            IsError = true;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SaveTest()
+    {
+        try
+        {
+            IsSaving = true;
+            Message = string.Empty;
+
+            if (richEdit != null)
+            {
+                await richEdit.SaveDocumentAsync();
+            }
+
+            if (CurrentTest.Id == Guid.Empty)
+            {
+                // New test entry
+                CurrentTest.Id = Guid.NewGuid();
+                CurrentTest.CreatedAt = DateTime.Now;
+                CurrentTest.LastUpdated = DateTime.Now;
+                DbContext.Tests.Add(CurrentTest);
+            }
+            else
+            {
+                // Update existing
+                CurrentTest.LastUpdated = DateTime.Now;
+                DbContext.Tests.Update(CurrentTest);
+            }
+
+            await DbContext.SaveChangesAsync();
+
+            Message = "Test data saved successfully!";
+            IsError = false;
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error saving test data: {ex.Message}";
+            IsError = true;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+
+    private void NavigateToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void OnCustomizeRibbon(DevExpress.Blazor.Office.IRibbon ribbon)
+    {
+        ribbon.Tabs.Remove(RichEditRibbonTabNames.File);
+        ribbon.Tabs.Remove(RichEditRibbonTabNames.MailMerge);
+    }
+}

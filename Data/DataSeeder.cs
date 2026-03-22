@@ -116,7 +116,15 @@ public static class DataSeeder
         }
 
         // Convert existing HTML content to RichText format
-        var contentService = scope.ServiceProvider.GetRequiredService<ContentService>();
-        await contentService.ConvertHtmlToRichTextAsync();
+        try
+        {
+            var contentService = scope.ServiceProvider.GetRequiredService<ContentService>();
+            await contentService.ConvertHtmlToRichTextAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to convert HTML to RichText during seeding: {ex.Message}");
+            // Continue execution - this is not critical for application startup
+        }
     }
 }
