@@ -1,0 +1,8 @@
+This is a placeholder for your FontImages.png file.
+
+To complete the implementation, you need to:
+1. Create or obtain a FontImages.png image file
+2. Place it in: wwwroot/images/Pictures/FontImages.png
+3. The image will automatically display in the popup
+
+The popup will show a placeholder message until the image is added.

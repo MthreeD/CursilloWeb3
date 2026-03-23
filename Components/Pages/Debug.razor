@@ -1,0 +1,16 @@
+@page "/debug"
+
+<ul>
+@foreach (var t in typeof(DxHtmlEditor).Assembly.GetTypes().Where(t => t.Name.Contains("HtmlEditor") && !t.Name.Contains("Internal")))
+{
+    <li>@t.Name</li>
+}
+</ul>
+
+<h3>Properties of DxHtmlEditor:</h3>
+<ul>
+@foreach (var p in typeof(DxHtmlEditor).GetProperties())
+{
+    <li>@p.Name: @p.PropertyType.Name</li>
+}
+</ul>

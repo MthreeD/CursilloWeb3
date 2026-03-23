@@ -2,18 +2,16 @@
 @rendermode InteractiveServer
 @using CursilloWeb.Data
 @using Microsoft.EntityFrameworkCore
-@* @using DevExpress.Blazor *@
-@using DevExpress.Blazor.RichEdit
 
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Test Page</PageTitle>
+<PageTitle>Test Page Edit</PageTitle>
 
-<div class="container">
+<div class="full-page-breakout">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Test Page</h2>
+        <h2>Test Page Edit</h2>
         <div class="d-flex align-items-center" style="gap: 10px">
             @if (!IsLoading)
             {
@@ -43,44 +41,58 @@
     }
     else
     {
-        <div class="mb-3">
-            <DxFormLayout>
-                <DxFormLayoutItem Caption="Text Box:" ColSpanMd="12">
-                    <Template>
-                        <DxTextBox @bind-Text="CurrentTest.TextBoxText"
-                                   CssClass="w-100"
-                                   Placeholder="Enter your text here..." />
-                    </Template>
-                </DxFormLayoutItem>
-
-                <DxFormLayoutItem Caption="Rich Text Content:" ColSpanMd="12">
-                    <Template>
-                        <div style="width: 8.5in; border: 1px solid #ccc;">
-                            <DxRichEdit @ref="richEdit"
-                                        DocumentFormat="DocumentFormat.Html"
-                                        @bind-DocumentContent="FileContentAsBytes"
-                                        Height="calc(1.5in + 60px)" 
-                                        CustomizeRibbon="OnCustomizeRibbon"
-                                        CssClass="w-100" />
+        <div class="mb-3 d-flex justify-content-center">
+            <div style="width: 100%;">
+                <!-- Inline Controls Section -->
+                <div class="d-flex align-items-start gap-4 mb-4">
+                    <!-- Background Color Section -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Background Color:</label>
+                        <div style="width: 240px;">
+                            <DxDropDownBox @bind-Value="@ColorValue"
+                                           QueryDisplayText="@QueryText"
+                                           NullText="Select color..."
+                                           CssClass="w-100">
+                                <DropDownBodyTemplate Context="dropDownContext">
+                                    <DxColorPalette Value="@GetColorDropDownValue(dropDownContext.DropDownBox)"
+                                                    ValueChanged="@((string value) => ColorDropDownValueChanged(value, dropDownContext.DropDownBox))"
+                                                    CssClass="dropdown-template-color-palette" />
+                                </DropDownBodyTemplate>
+                                <EditBoxDisplayTemplate Context="editBoxContext">
+                                    <div class="template-container">
+                                        <span class="dropdown-icon-color" style="background-color: @ColorValue;"></span>
+                                        <DxInputBox/>
+                                    </div>
+                                </EditBoxDisplayTemplate>
+                            </DxDropDownBox>
                         </div>
-                    </Template>
-                </DxFormLayoutItem>
+                    </div>
 
-                <DxFormLayoutItem Caption="HTML Display:" ColSpanMd="12">
-                    <Template>
-                        <div style="width: 8.5in; height: calc(1.5in + 60px); border: 1px solid #ccc; overflow-y: auto; background-color: #fff; padding: 0.5rem;">
-                            @if (!string.IsNullOrEmpty(CurrentTest.HtmlTest))
-                            {
-                                @((MarkupString)CurrentTest.HtmlTest)
-                            }
-                            else
-                            {
-                                <span class="text-muted">No content to display</span>
-                            }
+                    <!-- Font Images Section -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Font Images:</label>
+                        <div style="width: 240px;">
+                            <DxButton Text="Font Images" 
+                                      RenderStyle="ButtonRenderStyle.Info"
+                                      IconCssClass="dx-icon-font"
+                                      Click="@ShowFontImagesPopup"
+                                      CssClass="w-100" />
                         </div>
-                    </Template>
-                </DxFormLayoutItem>
-            </DxFormLayout>
+                    </div>
+                </div>
+
+                <!-- Edit Contents Section -->
+                <DxFormLayout CaptionPosition="CaptionPosition.Vertical">
+                    <DxFormLayoutItem Caption="Edit Contents:" ColSpanMd="12">
+                        <Template>
+                            <div style="margin-left: -10px; margin-right: -10px; width: calc(100% + 20px); border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; box-sizing: border-box;">
+                                <DxHtmlEditor @bind-Markup="CurrentTest.HtmlTest"
+                                              CssClass="w-100 header-size-editor" />
+                            </div>
+                        </Template>
+                    </DxFormLayoutItem>
+                </DxFormLayout>
+            </div>
         </div>
 
         @if (!string.IsNullOrEmpty(Message))
@@ -95,37 +107,201 @@
     }
 </div>
 
+<!-- Font Images Popup -->
+<DxPopup @bind-Visible="@FontImagesPopupVisible"
+         HeaderText="Font Images Gallery"
+         Width="900"
+         Height="600"
+         ShowCloseButton="true"
+         AllowResize="true"
+         AllowDrag="true"
+         ShowFooter="false"
+         CssClass="font-images-popup"
+         VerticalAlignment="VerticalAlignment.Center"
+         HorizontalAlignment="HorizontalAlignment.Center">
+    <BodyTemplate>
+        <div class="p-3 text-center">
+            <!-- Display only the FontImages.png image -->
+            <img src="images/Pictures/FontImages.png" 
+                 alt="Font Images Reference" 
+                 class="img-fluid font-reference-image"
+                 style="max-width: 100%; max-height: 100%; object-fit: contain; border: 1px solid #ddd; border-radius: 5px;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+            <div style="display: none; padding: 40px; border: 2px dashed #ccc; border-radius: 5px; background-color: #f8f9fa;">
+                <i class="dx-icon-image" style="font-size: 48px; color: #ccc;"></i>
+                <p class="text-muted mt-2 mb-0">
+                    Place your <strong>FontImages.png</strong> file in:<br>
+                    <code>wwwroot/images/Pictures/FontImages.png</code>
+                </p>
+            </div>
+        </div>
+    </BodyTemplate>
+</DxPopup>
+
+<style>
+    /* Force page height to fit window without vertical overflow */
+    body {
+        overflow: hidden !important; /* user requested NO scrollbars */
+    }
+
+    .full-page-breakout {
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+        padding-left: 10px;
+        padding-right: 10px;
+        box-sizing: border-box;
+    }
+
+    .header-size-editor .dx-htmleditor-content {
+        height: 120px !important;
+        min-height: 120px !important;
+        max-height: 120px !important;
+        overflow-y: auto;
+        background-color: @ColorValue !important;
+        font-family: 'Segoe UI Light', sans-serif !important;
+        font-size: 12pt !important;
+    }
+
+    /* Set default font for new content */
+    .header-size-editor .dx-htmleditor-content p,
+    .header-size-editor .dx-htmleditor-content div,
+    .header-size-editor .dx-htmleditor-content span {
+        font-family: 'Segoe UI Light', sans-serif;
+        font-size: 12pt;
+    }
+
+    .header-size-editor .dx-htmleditor-content h1,
+    .header-size-editor .dx-htmleditor-content h2,
+    .header-size-editor .dx-htmleditor-content h3,
+    .header-size-editor .dx-htmleditor-content h4,
+    .header-size-editor .dx-htmleditor-content h5,
+    .header-size-editor .dx-htmleditor-content h6 {
+        font-family: var(--font-serif);
+        color: var(--primary-color);
+    }
+
+    /* Style the drop-down items for the format menu to reflect site header fonts */
+    .dx-htmleditor-toolbar-format-list .dxbl-listbox-item-text,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text {
+        font-family: var(--font-sans);
+    }
+
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h1,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h2,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h3,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h4,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h5,
+    .dxbl-dropdown-popup .dxbl-listbox-item-text h6 {
+        font-family: var(--font-serif);
+        color: var(--primary-color);
+    }
+
+    .dropdown-template-color-palette {
+        border-width: 0px;
+    }
+
+    /* Font Images Popup Styling */
+    .font-images-popup .dx-popup-content {
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .font-images-popup .dx-popup-header {
+        cursor: move;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .font-images-popup .dx-popup-header:hover {
+        background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    }
+
+    .font-reference-image {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        max-height: calc(100vh - 200px) !important;
+    }
+
+    /* Inline controls styling */
+    .form-label.fw-bold {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #333;
+    }
+</style>
+
+<script>
+window.focusHtmlEditor = () => {
+    setTimeout(() => {
+        const editor = document.querySelector('.dx-htmleditor-content');
+        if (editor) {
+            editor.focus();
+            // Brief selection to trigger toolbar update
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            setTimeout(() => {
+                selection.removeAllRanges();
+                range.setStart(editor.firstChild || editor, 0);
+                range.setEnd(editor.firstChild || editor, 0);
+                selection.addRange(range);
+            }, 50);
+        }
+    }, 300);
+};
+</script>
+
 @code {
     private CursilloWeb.Data.Test CurrentTest = new CursilloWeb.Data.Test();
-    private DxRichEdit? richEdit;    
     private bool IsLoading = false;
     private bool IsSaving = false;
     private string Message = string.Empty;
     private bool IsError = false;
+    private bool FontImagesPopupVisible = false;
 
-    // Use a backing byte array required by DxRichEdit to serialize HTML
-    private byte[]? _fileContentAsBytes;
-    private byte[]? FileContentAsBytes
-    {
-        get
-        {
-            if (_fileContentAsBytes == null && !string.IsNullOrEmpty(CurrentTest.HtmlTest))
-                _fileContentAsBytes = System.Text.Encoding.UTF8.GetBytes(CurrentTest.HtmlTest);
+    private object ColorValue 
+    { 
+        get => !string.IsNullOrEmpty(CurrentTest.TextBoxText) ? CurrentTest.TextBoxText : "#66CDFF";
+        set => CurrentTest.TextBoxText = value?.ToString();
+    }
 
-            return _fileContentAsBytes;
-        }
-        set
-        {
-            _fileContentAsBytes = value;
-            if (_fileContentAsBytes != null)
-                CurrentTest.HtmlTest = System.Text.Encoding.UTF8.GetString(_fileContentAsBytes);
-        }
+    string GetColorDropDownValue(IDropDownBox dropDownBox) {
+        return dropDownBox.Value as string ?? "#66CDFF";
+    }
+
+    void ColorDropDownValueChanged(string value, IDropDownBox dropDownBox) {
+        dropDownBox.BeginUpdate();
+        dropDownBox.Value = value;
+        ColorValue = value;
+        dropDownBox.DropDownVisible = false;
+        dropDownBox.EndUpdate();
+    }
+
+    string QueryText(DropDownBoxQueryDisplayTextContext arg) {
+        return arg.Value as string ?? "";
     }
 
     protected override async Task OnInitializedAsync()
     {
         // Load existing test data if any
         await LoadTest();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("focusHtmlEditor");
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private void ShowFontImagesPopup()
+    {
+        FontImagesPopupVisible = true;
     }
 
     private async Task LoadTest()
@@ -137,6 +313,12 @@
             if (existingTest != null)
             {
                 CurrentTest = existingTest;
+            }
+
+            if (string.IsNullOrEmpty(CurrentTest.HtmlTest))
+            {
+                // Initialize with default font and size - using visible content
+                CurrentTest.HtmlTest = @"<p><span style=""font-family: 'Segoe UI Light', sans-serif; font-size: 12pt;"">Type your content here...</span></p>";
             }
         }
         catch (Exception ex)
@@ -156,11 +338,6 @@
         {
             IsSaving = true;
             Message = string.Empty;
-
-            if (richEdit != null)
-            {
-                await richEdit.SaveDocumentAsync();
-            }
 
             if (CurrentTest.Id == Guid.Empty)
             {
@@ -196,11 +373,5 @@
     private void NavigateToHome()
     {
         Navigation.NavigateTo("/");
-    }
-
-    private void OnCustomizeRibbon(DevExpress.Blazor.Office.IRibbon ribbon)
-    {
-        ribbon.Tabs.Remove(RichEditRibbonTabNames.File);
-        ribbon.Tabs.Remove(RichEditRibbonTabNames.MailMerge);
     }
 }

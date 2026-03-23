@@ -19,9 +19,25 @@
     <h5>Upload a New Image</h5>
     <InputFile OnChange="HandleFileSelection" accept="image/*" class="form-control mw-100" style="max-width: 400px;" />
 
-    <div class="mt-2">
-        <DxButton Text="Upload Selected File" Click="ProcessNewUpload" RenderStyle="ButtonRenderStyle.Primary" Disabled="@(pendingNewUploadFile == null || isUploading)" />
-    </div>
+    <div class="mt-3 mb-3">
+        <label class="form-label fw-bold">Destination Directory:</label>
+        <div class="d-flex align-items-center gap-4">
+            <div style="max-width: 400px; flex-shrink: 0;">
+                <DxComboBox Data="@GetSimpleDirectoryList()"
+                            @bind-Value="@selectedDirectoryName"
+                            NullText="Choose destination folder"
+                            CssClass="w-100"
+                            ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto">
+                </DxComboBox>
+            </div>
+            <div style="margin-left: 30px;">
+                <DxButton Text="Upload Selected File" 
+                          Click="ProcessNewUpload" 
+                          RenderStyle="ButtonRenderStyle.Primary" 
+                          Disabled="@(pendingNewUploadFile == null || isUploading || string.IsNullOrEmpty(selectedDirectory))" />
+            </div>
+            </div>
+        </div>
 
     @if (!string.IsNullOrEmpty(errorMessage))
     {
@@ -80,7 +96,11 @@ else if (currentView == PageView.View)
     <div class="text-center">
         @if (selectedImage != null)
         {
-            <img src="@selectedImage.Url" class="img-fluid" style="max-height: 80vh;" alt="Viewed Image" />
+            <div class="enlarged-image-container">
+                <img src="@selectedImage.Url" 
+                     class="img-fluid enlarged-image" 
+                     alt="Viewed Image" />
+            </div>
         }
     </div>
 }
@@ -134,8 +154,21 @@ else if (currentView == PageView.Edit)
     private IBrowserFile? pendingReplacementFile;
 
     private List<ImageInfo> images = new();
-
     private IBrowserFile? pendingNewUploadFile;
+
+    // Directory selection properties
+    private List<DirectoryItem> availableDirectories = new();
+    private string selectedDirectory = string.Empty;
+    private string? selectedDirectoryName 
+    { 
+        get => string.IsNullOrEmpty(selectedDirectory) ? null : $"📁 {selectedDirectory}";
+        set 
+        { 
+            // Remove the folder emoji and space when setting the value
+            var cleanValue = value?.Replace("📁 ", "").Trim() ?? "";
+            selectedDirectory = string.IsNullOrEmpty(cleanValue) ? string.Empty : cleanValue;
+        } 
+    }
 
     // Safety limits
     private const int MaxImageWidth = 1920;
@@ -144,7 +177,66 @@ else if (currentView == PageView.Edit)
 
     protected override void OnInitialized()
     {
+        LoadDirectories();
         LoadImages();
+    }
+
+    private void LoadDirectories()
+    {
+        availableDirectories.Clear();
+        string imagesRootFolder = Path.Combine(Environment.WebRootPath, "images");
+
+        if (Directory.Exists(imagesRootFolder))
+        {
+            // Add only subdirectories (no root folder option)
+            var subdirectories = Directory.GetDirectories(imagesRootFolder);
+            foreach (var subdirectory in subdirectories)
+            {
+                string folderName = Path.GetFileName(subdirectory);
+                availableDirectories.Add(new DirectoryItem 
+                { 
+                    Path = folderName, 
+                    DisplayName = folderName 
+                });
+            }
+        }
+
+        // Don't auto-select any directory - let user choose
+        selectedDirectory = string.Empty;
+    }
+
+    private string GetFullUploadPath()
+    {
+        if (string.IsNullOrEmpty(selectedDirectory))
+            return "Please choose a destination folder";
+
+        return $"wwwroot/images/{selectedDirectory}/";
+    }
+
+    private string GetSelectedDirectoryDisplayText()
+    {
+        if (string.IsNullOrEmpty(selectedDirectory))
+            return "Select directory...";
+
+        var selectedItem = availableDirectories.FirstOrDefault(d => d.Path == selectedDirectory);
+        return selectedItem?.DisplayName ?? "Select directory...";
+    }
+
+    private void SelectDirectory(string directoryPath)
+    {
+        selectedDirectory = directoryPath;
+        StateHasChanged();
+    }
+
+    private void SelectDirectoryAndClose(string directoryPath)
+    {
+        selectedDirectory = directoryPath;
+        StateHasChanged();
+    }
+
+    private List<string> GetSimpleDirectoryList()
+    {
+        return availableDirectories.Select(d => $"📁 {d.DisplayName}").ToList();
     }
 
     private void LoadImages()
@@ -154,27 +246,70 @@ else if (currentView == PageView.Edit)
 
         if (Directory.Exists(uploadsFolder))
         {
-            var files = new DirectoryInfo(uploadsFolder).GetFiles();
+            // Load images from root directory
+            var directoryInfo = new System.IO.DirectoryInfo(uploadsFolder);
+            var files = directoryInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
             foreach (var file in files)
             {
-                string displayName = file.Name;
-                if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                if (IsImageFile(file.Extension))
                 {
-                    displayName = displayName.Substring(37);
-                }
+                    string displayName = file.Name;
+                    if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                    {
+                        displayName = displayName.Substring(37);
+                    }
 
-                images.Add(new ImageInfo
-                {
-                    FileName = file.Name,
-                    DisplayName = displayName,
-                    FullPath = file.FullName,
-                    Url = $"/images/{file.Name}",
-                    Size = file.Length,
-                    DateModified = file.LastWriteTime
-                });
+                    images.Add(new ImageInfo
+                    {
+                        FileName = file.Name,
+                        DisplayName = displayName,
+                        FullPath = file.FullName,
+                        Url = $"/images/{file.Name}",
+                        Size = file.Length,
+                        DateModified = file.LastWriteTime
+                    });
+                }
             }
+
+            // Load images from subdirectories
+            var subdirectories = Directory.GetDirectories(uploadsFolder);
+            foreach (var subdirectory in subdirectories)
+            {
+                var subDirInfo = new System.IO.DirectoryInfo(subdirectory);
+                var subFiles = subDirInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+                string folderName = Path.GetFileName(subdirectory);
+
+                foreach (var file in subFiles)
+                {
+                    if (IsImageFile(file.Extension))
+                    {
+                        string displayName = file.Name;
+                        if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                        {
+                            displayName = displayName.Substring(37);
+                        }
+
+                        images.Add(new ImageInfo
+                        {
+                            FileName = $"{folderName}/{file.Name}",
+                            DisplayName = $"{displayName} ({folderName})",
+                            FullPath = file.FullName,
+                            Url = $"/images/{folderName}/{file.Name}",
+                            Size = file.Length,
+                            DateModified = file.LastWriteTime
+                        });
+                    }
+                }
+            }
+
             images = images.OrderByDescending(i => i.DateModified).ToList();
         }
+    }
+
+    private bool IsImageFile(string extension)
+    {
+        string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg" };
+        return imageExtensions.Contains(extension.ToLowerInvariant());
     }
 
     private void ViewImage(ImageInfo image)
@@ -354,7 +489,18 @@ else if (currentView == PageView.Edit)
             }
 
             string uniqueFileName = prefix + safeOriginalName;
-            string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+
+            // Use selected directory for upload
+            string uploadsFolder;
+            if (string.IsNullOrEmpty(selectedDirectory))
+            {
+                uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+            }
+            else
+            {
+                uploadsFolder = Path.Combine(Environment.WebRootPath, "images", selectedDirectory);
+            }
+
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
             string fullFilePath = Path.Combine(uploadsFolder, uniqueFileName);
@@ -375,7 +521,7 @@ else if (currentView == PageView.Edit)
             else
             {
                 pendingNewUploadFile = null;
-                successMessage = $"Success! Image saved as {uniqueFileName}";
+                successMessage = $"Success! Image saved as {uniqueFileName} in {GetFullUploadPath()}";
                 LoadImages();
             }
         }
@@ -405,4 +551,25 @@ else if (currentView == PageView.Edit)
         public long Size { get; set; }
         public DateTime DateModified { get; set; }
     }
+
+    public class DirectoryItem
+    {
+        public string Path { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+    }
 }
+
+<style>
+    .dropdown-item-custom:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item-custom.selected {
+        background-color: #e7f3ff;
+        font-weight: 500;
+    }
+
+    .dropdown-item-custom:hover:not(.selected) {
+        background-color: #f0f0f0;
+    }
+</style>
