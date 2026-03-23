@@ -7,5 +7,4 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Article> Articles { get; set; }
     public DbSet<ContentBlock> ContentBlocks { get; set; }
     public DbSet<Test> Tests { get; set; }
-    public DbSet<Page2Data> Page2s { get; set; }
 }

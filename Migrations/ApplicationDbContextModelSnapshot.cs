@@ -77,20 +77,6 @@ namespace CursilloWeb.Migrations
                     b.ToTable("ContentBlocks");
                 });
 
-            modelBuilder.Entity("CursilloWeb.Data.Page2Data", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("HTMLContents")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Page2");
-                });
-
             modelBuilder.Entity("CursilloWeb.Data.Test", b =>
                 {
                     b.Property<Guid>("Id")
