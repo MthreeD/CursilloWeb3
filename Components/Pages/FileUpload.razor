@@ -1,0 +1,1045 @@
+@page "/file-upload"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Hosting
+@using System.IO
+@using CursilloWeb.Data
+@using CursilloWeb.Services
+@* We inject the environment to find the physical path to wwwroot *@
+@inject IWebHostEnvironment Environment
+@inject NavigationManager Navigation
+@inject WebmasterSettingsService SettingsService
+
+<style>
+    .custom-clear-btn {
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    .custom-clear-btn:hover {
+        background-color: darkred !important;
+        transform: scale(1.1);
+        transition: all 0.2s ease;
+    }
+
+    .custom-clear-btn:focus {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Image preview on hover */
+    .file-preview {
+        position: absolute;
+        width: 2in;
+        height: 2in;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 1000;
+        pointer-events: none;
+        display: none;
+    }
+
+    .file-preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+    }
+
+    .file-name-cell:hover .file-preview {
+        display: block;
+    }
+
+    .sorry-message {
+        font-size: 14pt;
+        color: black;
+        font-weight: bold;
+    }
+
+    .feature-message {
+        font-size: 10pt;
+        color: black;
+        margin-top: 8px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>File Management</h3>
+    <DxButton Text="Return to Home" Click="@ReturnToHome" RenderStyle="ButtonRenderStyle.Secondary" />
+</div>
+
+@if (currentView == PageView.List)
+{
+
+<div class="upload-container mb-4 position-relative">
+    <DxLoadingPanel Visible="@isUploading" Text="Uploading..." IsContentBlocked="true" />
+    <h5>Upload a New File</h5>
+    <p class="text-muted mb-2">Step 1: Choose a file from your computer</p>
+
+    <!-- File selection with custom clear button -->
+    <div class="position-relative mb-3" style="max-width: 1000px;">
+        <InputFile OnChange="HandleFileSelection" accept="image/*" 
+                   class="form-control" 
+                   style="padding-right: 50px; font-size: 14px; height: 38px;" />
+        @if (pendingNewUploadFile != null)
+        {
+            <button type="button" 
+                    class="btn position-absolute top-50 end-0 translate-middle-y me-2 p-0 custom-clear-btn"
+                    @onclick="ClearFileSelection"
+                    style="width: 24px; height: 24px; border: 2px solid black; background-color: red; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                <i class="bi bi-x" style="color: white; font-size: 14px; font-weight: bold;"></i>
+            </button>
+        }
+    </div>
+
+    @if (pendingNewUploadFile != null)
+    {
+        <div class="mt-2 mb-3 text-success">
+            <i class="bi bi-check-circle"></i> File selected: @pendingNewUploadFile.Name
+        </div>
+    }
+
+    <!-- Always visible destination selection -->
+    <div class="mb-3">
+        <p class="text-muted mb-2">Step 2: Suggested Destinations (based on file extension):</p>
+        <DxComboBox Data="@GetDestinationDescriptions()"
+                    @bind-Value="@selectedDestinationDescription"
+                    NullText="Choose a suggested destination..."
+                    CssClass="w-100"
+                    ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                    style="max-width: 400px;">
+        </DxComboBox>
+        @if (!string.IsNullOrEmpty(selectedDestinationDescription))
+        {
+            <div class="mt-1 text-info">
+                <small><i class="bi bi-info-circle"></i> This will use the path: @GetPathForDescription(selectedDestinationDescription)</small>
+            </div>
+        }
+    </div>
+
+    <!-- Upload button aligned with file controls -->
+    <div class="mb-3">
+        <DxButton Text="@GetUploadButtonText()" 
+                  Click="ProcessNewUpload" 
+                  RenderStyle="ButtonRenderStyle.Primary" 
+                  Disabled="@(pendingNewUploadFile == null || isUploading || string.IsNullOrEmpty(GetEffectiveUploadDirectory()))" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-2">@errorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success mt-2">@successMessage</div>
+    }
+</div>
+
+<!-- Popup for feature not available -->
+<DxPopup @bind-Visible="@showFeatureToast"
+         HeaderText=""
+         ShowHeader="false"
+         ShowFooter="false"
+         CloseOnOutsideClick="true"
+         Width="400px"
+         Height="200px"
+         CssClass="feature-popup">
+    <BodyTemplate>
+        <div class="text-center p-4">
+            <div class="sorry-message">Sorry!</div>
+            <div class="feature-message">
+                This feature is not yet implemented.<br />
+                Please try back again later.
+            </div>
+        </div>
+    </BodyTemplate>
+</DxPopup>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Existing Files@(!string.IsNullOrEmpty(selectedDirectory) ? $" (📁{selectedDirectory})" : "")</h4>
+    <div class="d-flex align-items-center justify-content-center gap-2">
+        <p class="text-muted mb-0">View files in folders:</p>
+        <DxComboBox Data="@GetSimpleDirectoryList()"
+                    @bind-Value="@selectedDirectoryName"
+                    NullText="All files"
+                    CssClass="w-auto"
+                    ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                    style="min-width: 200px;">
+        </DxComboBox>
+    </div>
+</div>
+<div class="position-relative">
+    <DxLoadingPanel Visible="@isLoadingFiles" Text="Loading files..." IsContentBlocked="true" />
+    <DxGrid Data="@files"
+            ShowFilterRow="false"
+            PageSize="10"
+            CssClass="mt-3"
+            RowElementAttributes="@GetFileRowAttributes">
+        <Columns>
+            <DxGridDataColumn FieldName="@nameof(FileItem.DisplayName)" Caption="File Name">
+                <CellDisplayTemplate>
+                    @{
+                        var file = (FileItem)context.DataItem;
+                    }
+                    <div class="file-name-cell position-relative">
+                        @file.DisplayName
+                        <div class="file-preview" style="top: 0; left: 100%;">
+                            <img src="@file.Url" alt="@file.DisplayName" />
+                        </div>
+                    </div>
+                </CellDisplayTemplate>
+            </DxGridDataColumn>
+            <DxGridDataColumn FieldName="@nameof(FileItem.Size)" Caption="Size (Bytes)" DisplayFormat="N0" Width="150px" />
+            <DxGridDataColumn FieldName="@nameof(FileItem.DateModified)" Caption="Date Modified" DisplayFormat="g" Width="200px" />
+            <DxGridCommandColumn Width="250px" NewButtonVisible="false" EditButtonVisible="false" DeleteButtonVisible="false">
+                <HeaderCaptionTemplate>
+                    <div class="text-center w-100 fs-6 text-dark fw-bold">
+                        Actions
+                    </div>
+                </HeaderCaptionTemplate>
+                <CellDisplayTemplate>
+                    @{ var file = (FileItem)context.DataItem; }
+                    <div class="d-flex justify-content-center gap-3">
+                        <DxButton Text="View" 
+                                  IconCssClass="bi bi-eye"
+                                  Click="@(() => ViewFile(file))" 
+                                  RenderStyle="ButtonRenderStyle.Link" />
+                        <DxButton Text="Edit" 
+                                  IconCssClass="bi bi-pencil"
+                                  Click="@(() => ShowFeatureNotAvailable())" 
+                                  RenderStyle="ButtonRenderStyle.Link" />
+                        <DxButton Text="Delete" 
+                                  IconCssClass="bi bi-trash"
+                                  Click="@(() => DeleteFile(file))" 
+                                  RenderStyle="ButtonRenderStyle.Link" 
+                                  CssClass="text-danger" />
+                    </div>
+                </CellDisplayTemplate>
+            </DxGridCommandColumn>
+        </Columns>
+    </DxGrid>
+</div>
+
+}
+else if (currentView == PageView.View)
+{
+    <h4>View File</h4>
+    <div class="mb-3">
+        <DxButton Text="Return" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+    </div>
+    <div class="text-center">
+        @if (selectedFile != null)
+        {
+            <div class="enlarged-image-container">
+                <img src="@selectedFile.Url" 
+                     class="img-fluid enlarged-image" 
+                     alt="Viewed File" />
+            </div>
+        }
+    </div>
+}
+else if (currentView == PageView.Edit)
+{
+    <h4>Edit File</h4>
+    <div class="mb-3 d-flex gap-2">
+        <DxButton Text="Cancel" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+        <DxButton Text="Return" Click="@ReturnToList" RenderStyle="ButtonRenderStyle.Secondary" />
+        <DxButton Text="Save" Click="@SaveEdit" RenderStyle="ButtonRenderStyle.Primary" />
+    </div>
+
+    @if (!string.IsNullOrEmpty(editErrorMessage))
+    {
+        <div class="alert alert-danger mt-2">@editErrorMessage</div>
+    }
+    @if (!string.IsNullOrEmpty(editSuccessMessage))
+    {
+        <div class="alert alert-success mt-2">@editSuccessMessage</div>
+    }
+
+    <div class="mb-3" style="max-width: 400px;">
+        <label class="form-label fw-bold">File Name</label>
+        <DxTextBox @bind-Text="@editFileName" />
+    </div>
+
+    <div class="mb-3" style="max-width: 600px;">
+        <label class="form-label fw-bold">Replace File (Optional)</label>
+        <InputFile OnChange="HandleReplacementSelection" accept="image/*" class="form-control" />
+    </div>
+
+    <div class="text-start mt-4">
+        @if (selectedFile != null)
+        {
+            <img src="@selectedFile.Url" class="img-fluid shadow-sm border" style="max-height: 50vh;" alt="Edit File Preview" />
+        }
+    </div>
+}
+
+@code {
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isUploading = false;
+    private bool isLoadingFiles = false;
+
+    private enum PageView { List, View, Edit }
+    private PageView currentView = PageView.List;
+
+    // Toast control for feature not available
+    private bool showFeatureToast = false;
+    private FileItem? selectedFile;
+    private string editFileName = string.Empty;
+    private string? editErrorMessage;
+    private string? editSuccessMessage;
+    private IBrowserFile? pendingReplacementFile;
+
+    // Extension-based destination properties
+    private List<WebmasterSetting> matchingDestinations = new();
+    private string? selectedDestinationDescription;
+
+    // WebmasterSettings for folder view
+    private List<WebmasterSetting> allWebmasterSettings = new();
+
+    private List<FileItem> files = new();
+    private IBrowserFile? pendingNewUploadFile;
+
+    // Directory selection properties
+    private List<DirectoryItem> availableDirectories = new();
+    private string selectedDirectory = string.Empty;
+    private string? selectedDirectoryName 
+    { 
+        get 
+        {
+            if (string.IsNullOrEmpty(selectedDirectory))
+                return "📁 All files";
+
+            // Show folder icon for all directories
+            return $"📁 {selectedDirectory}";
+        }
+        set 
+        { 
+            // Handle "All files" selection or remove the folder emoji and space when setting the value
+            var cleanValue = value?.Replace("📁 ", "").Trim() ?? "";
+            var newDirectory = (cleanValue == "All files" || string.IsNullOrEmpty(cleanValue)) ? string.Empty : cleanValue;
+
+            if (selectedDirectory != newDirectory)
+            {
+                selectedDirectory = newDirectory;
+                _ = LoadFilesForSelectedDirectoryAsync();
+            }
+        } 
+    }
+
+    // Safety limits
+    private const int MaxImageWidth = 1920;
+    private const int MaxImageHeight = 1080;
+    private const long MaxFileSize = 1024 * 1024 * 5; // 5 MB maximum
+
+    protected override async Task OnInitializedAsync()
+    {
+        LoadDirectories();
+        await LoadWebmasterSettingsAsync();
+        await LoadFilesForSelectedDirectoryAsync();
+    }
+
+    private async Task LoadWebmasterSettingsAsync()
+    {
+        try
+        {
+            allWebmasterSettings = await SettingsService.GetAllSettingsAsync();
+            allWebmasterSettings ??= new List<WebmasterSetting>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading webmaster settings: {ex.Message}");
+            allWebmasterSettings = new List<WebmasterSetting>();
+        }
+    }
+
+    private void LoadDirectories()
+    {
+        availableDirectories.Clear();
+        string imagesRootFolder = Path.Combine(Environment.WebRootPath, "images");
+
+        if (Directory.Exists(imagesRootFolder))
+        {
+            // Add only subdirectories (no root folder option)
+            var subdirectories = Directory.GetDirectories(imagesRootFolder);
+            foreach (var subdirectory in subdirectories)
+            {
+                string folderName = Path.GetFileName(subdirectory);
+                availableDirectories.Add(new DirectoryItem 
+                { 
+                    Path = folderName, 
+                    DisplayName = folderName 
+                });
+            }
+        }
+
+        // Don't auto-select any directory - let user choose
+        selectedDirectory = string.Empty;
+    }
+
+    private string GetFullUploadPath()
+    {
+        if (string.IsNullOrEmpty(selectedDirectory))
+            return "Please choose a destination folder";
+
+        return $"wwwroot/images/{selectedDirectory}/";
+    }
+
+    private string GetSelectedDirectoryDisplayText()
+    {
+        if (string.IsNullOrEmpty(selectedDirectory))
+            return "Select directory...";
+
+        var selectedItem = availableDirectories.FirstOrDefault(d => d.Path == selectedDirectory);
+        return selectedItem?.DisplayName ?? "Select directory...";
+    }
+
+    private void SelectDirectory(string directoryPath)
+    {
+        selectedDirectory = directoryPath;
+        StateHasChanged();
+    }
+
+    private void SelectDirectoryAndClose(string directoryPath)
+    {
+        selectedDirectory = directoryPath;
+        StateHasChanged();
+    }
+
+    private List<string> GetSimpleDirectoryList()
+    {
+        var list = new List<string> { "📁 All files" };
+
+        // Add physical directories - all with folder icons
+        list.AddRange(availableDirectories.Select(d => $"📁 {d.DisplayName}"));
+
+        // Add WebmasterSettings descriptions - all with folder icons
+        list.AddRange(allWebmasterSettings.Select(s => $"📁 {s.Description}"));
+
+        return list.Distinct().ToList();
+    }
+
+    private string GetUploadButtonText()
+    {
+        if (pendingNewUploadFile == null)
+            return "Select a file first";
+
+        if (string.IsNullOrEmpty(GetEffectiveUploadDirectory()))
+            return "Choose destination folder";
+
+        return "Upload Selected File";
+    }
+
+    private async Task FindMatchingDestinationsAsync(string fileExtension)
+    {
+        try
+        {
+            matchingDestinations.Clear();
+            selectedDestinationDescription = null;
+
+            if (string.IsNullOrWhiteSpace(fileExtension))
+                return;
+
+            // Get all webmaster settings
+            var allSettings = await SettingsService.GetAllSettingsAsync();
+
+            // Find settings where the file extension matches
+            foreach (var setting in allSettings)
+            {
+                if (!string.IsNullOrWhiteSpace(setting.FileExtensions))
+                {
+                    // Split extensions by common delimiters (comma, semicolon, newline, space)
+                    var extensions = setting.FileExtensions.Split(new char[] { ',', ';', '\n', '\r', ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                    foreach (var ext in extensions)
+                    {
+                        var cleanExt = ext.Trim().TrimStart('.');
+                        var cleanFileExt = fileExtension.TrimStart('.');
+
+                        if (string.Equals(cleanExt, cleanFileExt, StringComparison.OrdinalIgnoreCase))
+                        {
+                            matchingDestinations.Add(setting);
+                            break; // Don't add the same setting multiple times
+                        }
+                    }
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error finding matching destinations: {ex.Message}");
+        }
+    }
+
+    private List<string> GetDestinationDescriptions()
+    {
+        var descriptions = matchingDestinations.Select(d => d.Description).Distinct().ToList();
+        if (!descriptions.Any())
+        {
+            descriptions.Add("No matching destinations found");
+        }
+        return descriptions;
+    }
+
+    private string GetPathForDescription(string description)
+    {
+        if (description == "No matching destinations found")
+            return "No suggested path available";
+
+        var setting = matchingDestinations.FirstOrDefault(d => d.Description == description);
+        return setting?.FullPath ?? "";
+    }
+
+    private string GetEffectiveUploadDirectory()
+    {
+        // Priority: 1. Selected destination description, 2. Manual directory selection, 3. Default
+        if (!string.IsNullOrEmpty(selectedDestinationDescription) && selectedDestinationDescription != "No matching destinations found")
+        {
+            var destinationPath = GetPathForDescription(selectedDestinationDescription);
+            if (!string.IsNullOrEmpty(destinationPath) && destinationPath != "No suggested path available")
+            {
+                // Convert full path to relative path under images folder
+                // For example: "C:\MyApp\wwwroot\images\Icons" -> "Icons"
+                var imagesPath = Path.Combine(Environment.WebRootPath, "images");
+                if (destinationPath.StartsWith(imagesPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    var relativePath = destinationPath.Substring(imagesPath.Length).TrimStart('\\', '/');
+                    return relativePath;
+                }
+                // If it's just a folder name, use it directly
+                return Path.GetFileName(destinationPath);
+            }
+        }
+
+        return selectedDirectory;
+    }
+
+    private async Task LoadFilesForSelectedDirectoryAsync()
+    {
+        isLoadingFiles = true;
+        StateHasChanged();
+
+        // Add small delay to show loading effect
+        await Task.Delay(100);
+
+        files.Clear();
+
+        try
+        {
+            string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+
+            if (Directory.Exists(uploadsFolder))
+            {
+                if (string.IsNullOrEmpty(selectedDirectory))
+                {
+                    // Load all files from all directories when "All files" is selected
+                    LoadAllFiles();
+                }
+                else
+                {
+                    // Load files only from selected directory
+                    string targetFolder = Path.Combine(uploadsFolder, selectedDirectory);
+
+                    if (Directory.Exists(targetFolder))
+                    {
+                        var subDirInfo = new DirectoryInfo(targetFolder);
+                        var subFiles = subDirInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+
+                        foreach (var file in subFiles)
+                        {
+                            if (IsImageFile(file.Extension))
+                            {
+                                string displayName = file.Name;
+                                if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                                {
+                                    displayName = displayName.Substring(37);
+                                }
+
+                                files.Add(new FileItem
+                                {
+                                    FileName = $"{selectedDirectory}/{file.Name}",
+                                    DisplayName = displayName,
+                                    FullPath = file.FullName,
+                                    Url = $"/images/{selectedDirectory}/{file.Name}",
+                                    Size = file.Length,
+                                    DateModified = file.LastWriteTime
+                                });
+                            }
+                        }
+
+                        files = files.OrderByDescending(i => i.DateModified).ToList();
+                    }
+                }
+            }
+        }
+        finally
+        {
+            isLoadingFiles = false;
+            StateHasChanged();
+        }
+    }
+
+    private void LoadAllFiles()
+    {
+        string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+
+        if (Directory.Exists(uploadsFolder))
+        {
+            // Load files from root directory
+            var directoryInfo = new System.IO.DirectoryInfo(uploadsFolder);
+            var filesInRoot = directoryInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+            foreach (var file in filesInRoot)
+            {
+                if (IsImageFile(file.Extension))
+                {
+                    string displayName = file.Name;
+                    if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                    {
+                        displayName = displayName.Substring(37);
+                    }
+
+                    files.Add(new FileItem
+                    {
+                        FileName = file.Name,
+                        DisplayName = displayName,
+                        FullPath = file.FullName,
+                        Url = $"/images/{file.Name}",
+                        Size = file.Length,
+                        DateModified = file.LastWriteTime
+                    });
+                }
+            }
+
+            // Load files from subdirectories
+            var subdirectories = Directory.GetDirectories(uploadsFolder);
+            foreach (var subdirectory in subdirectories)
+            {
+                var subDirInfo = new System.IO.DirectoryInfo(subdirectory);
+                var subFiles = subDirInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+                string folderName = Path.GetFileName(subdirectory);
+
+                foreach (var file in subFiles)
+                {
+                    if (IsImageFile(file.Extension))
+                    {
+                        string displayName = file.Name;
+                        if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                        {
+                            displayName = displayName.Substring(37);
+                        }
+
+                        files.Add(new FileItem
+                        {
+                            FileName = $"{folderName}/{file.Name}",
+                            DisplayName = $"{displayName} ({folderName})",
+                            FullPath = file.FullName,
+                            Url = $"/images/{folderName}/{file.Name}",
+                            Size = file.Length,
+                            DateModified = file.LastWriteTime
+                        });
+                    }
+                }
+            }
+
+            files = files.OrderByDescending(i => i.DateModified).ToList();
+        }
+    }
+
+    private void LoadFiles()
+    {
+        files.Clear();
+        string uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+
+        if (Directory.Exists(uploadsFolder))
+        {
+            // Load files from root directory
+            var directoryInfo = new System.IO.DirectoryInfo(uploadsFolder);
+            var filesInRoot = directoryInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+            foreach (var file in filesInRoot)
+            {
+                if (IsImageFile(file.Extension))
+                {
+                    string displayName = file.Name;
+                    if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                    {
+                        displayName = displayName.Substring(37);
+                    }
+
+                    files.Add(new FileItem
+                    {
+                        FileName = file.Name,
+                        DisplayName = displayName,
+                        FullPath = file.FullName,
+                        Url = $"/images/{file.Name}",
+                        Size = file.Length,
+                        DateModified = file.LastWriteTime
+                    });
+                }
+            }
+
+            // Load files from subdirectories
+            var subdirectories = Directory.GetDirectories(uploadsFolder);
+            foreach (var subdirectory in subdirectories)
+            {
+                var subDirInfo = new System.IO.DirectoryInfo(subdirectory);
+                var subFiles = subDirInfo.GetFiles("*.*", SearchOption.TopDirectoryOnly);
+                string folderName = Path.GetFileName(subdirectory);
+
+                foreach (var file in subFiles)
+                {
+                    if (IsImageFile(file.Extension))
+                    {
+                        string displayName = file.Name;
+                        if (displayName.Length > 37 && displayName[36] == '_' && Guid.TryParse(displayName.Substring(0, 36), out _))
+                        {
+                            displayName = displayName.Substring(37);
+                        }
+
+                        files.Add(new FileItem
+                        {
+                            FileName = $"{folderName}/{file.Name}",
+                            DisplayName = $"{displayName} ({folderName})",
+                            FullPath = file.FullName,
+                            Url = $"/images/{folderName}/{file.Name}",
+                            Size = file.Length,
+                            DateModified = file.LastWriteTime
+                        });
+                    }
+                }
+            }
+
+            files = files.OrderByDescending(i => i.DateModified).ToList();
+        }
+    }
+
+    private bool IsImageFile(string extension)
+    {
+        string[] imageExtensions = { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".svg" };
+        return imageExtensions.Contains(extension.ToLowerInvariant());
+    }
+
+    private void ViewFile(FileItem file)
+    {
+        selectedFile = file;
+        currentView = PageView.View;
+        StateHasChanged();
+    }
+
+    private void EditFile(FileItem file)
+    {
+        selectedFile = file;
+        editFileName = file.DisplayName;
+        editErrorMessage = null;
+        editSuccessMessage = null;
+        pendingReplacementFile = null;
+        currentView = PageView.Edit;
+        StateHasChanged();
+    }
+
+    private void ReturnToList()
+    {
+        currentView = PageView.List;
+        selectedFile = null;
+        pendingReplacementFile = null;
+        StateHasChanged();
+    }
+
+    private async void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        pendingNewUploadFile = e.File;
+        errorMessage = null;
+        successMessage = null;
+
+        // Clear previous selection
+        selectedDestinationDescription = null;
+
+        if (pendingNewUploadFile != null)
+        {
+            // Extract file extension and find matching destinations
+            var extension = Path.GetExtension(pendingNewUploadFile.Name);
+            await FindMatchingDestinationsAsync(extension);
+        }
+        else
+        {
+            matchingDestinations.Clear();
+        }
+
+        StateHasChanged();
+    }
+
+    private void ClearFileSelection()
+    {
+        pendingNewUploadFile = null;
+        selectedDestinationDescription = null;
+        matchingDestinations.Clear();
+        errorMessage = null;
+        successMessage = null;
+        StateHasChanged();
+    }
+
+    private void HandleReplacementSelection(InputFileChangeEventArgs e)
+    {
+        pendingReplacementFile = e.File;
+    }
+
+    private async Task ProcessNewUpload()
+    {
+        if (pendingNewUploadFile == null) return;
+        await HandleStreamUpload(pendingNewUploadFile, isReplacement: false);
+    }
+
+    private async Task SaveEdit()
+    {
+        if (selectedFile == null) return;
+
+        try
+        {
+            // If they uploaded a new file to replace the existing one
+            if (pendingReplacementFile != null)
+            {
+                await HandleStreamUpload(pendingReplacementFile, isReplacement: true);
+                return; // HandleStreamUpload calls ReturnToList and LoadFiles
+            }
+
+            // Otherwise just rename it
+            string ext = Path.GetExtension(selectedFile.FileName);
+            string newDisplayName = editFileName;
+            if (string.IsNullOrWhiteSpace(newDisplayName)) newDisplayName = "file";
+            if (!newDisplayName.EndsWith(ext, StringComparison.OrdinalIgnoreCase)) newDisplayName += ext;
+
+            string dir = Path.GetDirectoryName(selectedFile.FullPath)!;
+            string prefix = "";
+            if (selectedFile.FileName.Length > 37 && selectedFile.FileName[36] == '_' && Guid.TryParse(selectedFile.FileName.Substring(0, 36), out var g))
+            {
+                prefix = g.ToString() + "_";
+            }
+            else
+            {
+                prefix = Guid.NewGuid().ToString() + "_";
+            }
+
+            string newFileName = prefix + newDisplayName;
+            string newPath = Path.Combine(dir, newFileName);
+
+            if (selectedFile.FullPath != newPath)
+            {
+                File.Move(selectedFile.FullPath, newPath);
+            }
+
+            editSuccessMessage = "File saved successfully!";
+            StateHasChanged();
+            await Task.Delay(1000);
+
+            LoadFiles();
+            ReturnToList();
+        }
+        catch (Exception ex)
+        {
+            editErrorMessage = $"Error saving file: {ex.Message}";
+        }
+    }
+
+    private void DeleteFile(FileItem file)
+    {
+        try
+        {
+            if (File.Exists(file.FullPath))
+            {
+                File.Delete(file.FullPath);
+                successMessage = $"Deleted {file.FileName}";
+                errorMessage = null;
+                LoadFiles();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting file: {ex.Message}";
+            successMessage = null;
+        }
+        StateHasChanged();
+    }
+
+    private void ReturnToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task HandleStreamUpload(IBrowserFile originalFile, bool isReplacement)
+    {
+        isUploading = true;
+        if (isReplacement)
+        {
+            editErrorMessage = null;
+            editSuccessMessage = null;
+        }
+        else
+        {
+            errorMessage = null;
+            successMessage = null;
+        }
+        StateHasChanged();
+
+        try
+        {
+            var compressedImage = await originalFile.RequestImageFileAsync("image/jpeg", MaxImageWidth, MaxImageHeight);
+
+            if (compressedImage.Size > MaxFileSize)
+            {
+                ThrowError("File is too large. Please select a smaller file.", isReplacement);
+                return;
+            }
+
+            string safeOriginalName = new string(originalFile.Name.Where(c => !Path.GetInvalidFileNameChars().Contains(c)).ToArray());
+            if (string.IsNullOrWhiteSpace(safeOriginalName)) { safeOriginalName = "image.jpg"; }
+
+            if (!safeOriginalName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) && !safeOriginalName.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase))
+            {
+                safeOriginalName = Path.GetFileNameWithoutExtension(safeOriginalName) + ".jpg";
+            }
+
+            // If it's a replacement, try to use the current edit name, but with the new file's extension
+            string ext = Path.GetExtension(safeOriginalName);
+            if (isReplacement && !string.IsNullOrWhiteSpace(editFileName))
+            {
+                safeOriginalName = editFileName;
+                if (!safeOriginalName.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                {
+                    safeOriginalName += ext;
+                }
+            }
+
+            string prefix = Guid.NewGuid().ToString() + "_";
+
+            // If replacement, keep the old guid if possible just for consistency, or let it change
+            if (isReplacement && selectedFile != null)
+            {
+                 if (selectedFile.FileName.Length > 37 && selectedFile.FileName[36] == '_' && Guid.TryParse(selectedFile.FileName.Substring(0, 36), out var g))
+                 {
+                     prefix = g.ToString() + "_";
+                 }
+                 // Delete the old file since we are overwriting it entirely
+                 if (File.Exists(selectedFile.FullPath))
+                 {
+                     File.Delete(selectedFile.FullPath);
+                 }
+            }
+
+            string uniqueFileName = prefix + safeOriginalName;
+
+            // Use selected destination (from extension match) or manual directory selection
+            string effectiveDirectory = GetEffectiveUploadDirectory();
+            string uploadsFolder;
+            if (string.IsNullOrEmpty(effectiveDirectory))
+            {
+                uploadsFolder = Path.Combine(Environment.WebRootPath, "images");
+            }
+            else
+            {
+                uploadsFolder = Path.Combine(Environment.WebRootPath, "images", effectiveDirectory);
+            }
+
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            string fullFilePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (FileStream fs = new FileStream(fullFilePath, FileMode.Create))
+            {
+                await compressedImage.OpenReadStream(MaxFileSize).CopyToAsync(fs);
+            }
+
+            if (isReplacement)
+            {
+                editSuccessMessage = "File replaced and saved successfully!";
+                StateHasChanged();
+                await Task.Delay(1000);
+                LoadFiles();
+                ReturnToList();
+            }
+            else
+            {
+                pendingNewUploadFile = null;
+                selectedDestinationDescription = null;
+                matchingDestinations.Clear();
+                successMessage = $"Success! File saved as {uniqueFileName} in {GetFullUploadPath()}";
+                LoadFiles();
+            }
+        }
+        catch (Exception ex)
+        {
+            ThrowError($"An error occurred: {ex.Message}", isReplacement);
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    private void ThrowError(string msg, bool isReplacement)
+    {
+        if (isReplacement) editErrorMessage = msg;
+        else errorMessage = msg;
+        isUploading = false;
+    }
+
+    private Dictionary<string, object> GetFileRowAttributes(FileItem fileItem)
+    {
+        // Format the date modified with AM/PM
+        var modifiedDate = fileItem.DateModified.ToString("MM/dd/yyyy hh:mm tt");
+
+        // Create tooltip text with two lines
+        var tooltipText = $"Date modified:&#10;{modifiedDate}";
+
+        return new Dictionary<string, object>
+        {
+            ["title"] = tooltipText,
+            ["style"] = "cursor: help;"
+        };
+    }
+
+    private async void ShowFeatureNotAvailable()
+    {
+        showFeatureToast = true;
+        StateHasChanged();
+
+        // Auto-close after 3 seconds
+        await Task.Delay(3000);
+        showFeatureToast = false;
+        StateHasChanged();
+    }
+
+    public class FileItem
+    {
+        public string FileName { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public string FullPath { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public DateTime DateModified { get; set; }
+    }
+
+    public class DirectoryItem
+    {
+        public string Path { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+    }
+}
+
+<style>
+    .dropdown-item-custom:hover {
+        background-color: #f8f9fa;
+    }
+
+    .dropdown-item-custom.selected {
+        background-color: #e7f3ff;
+        font-weight: 500;
+    }
+
+    .dropdown-item-custom:hover:not(.selected) {
+        background-color: #f0f0f0;
+    }
+</style>

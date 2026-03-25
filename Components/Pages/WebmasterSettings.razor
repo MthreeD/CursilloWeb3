@@ -1,0 +1,450 @@
+@page "/webmaster-settings"
+@rendermode InteractiveServer
+@using CursilloWeb.Data
+@using CursilloWeb.Services
+@inject WebmasterSettingsService SettingsService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Configuration Settings</PageTitle>
+
+<style>
+    .custom-page-container {
+        margin-left: 10px;
+        margin-right: 10px;
+        width: calc(100vw - 20px);
+        min-width: calc(100vw - 20px);
+    }
+
+    /* Allow grid to be resizable and expandable */
+    .custom-page-container .dx-datagrid {
+        min-width: 100%;
+        overflow-x: auto;
+    }
+
+    .custom-page-container .dx-datagrid-container {
+        min-width: 100%;
+        overflow-x: auto;
+    }
+
+    /* Better spacing for action buttons */
+    .action-buttons {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+        padding: 0 5px;
+        white-space: nowrap;
+    }
+
+    /* Enable horizontal scrolling if grid exceeds container */
+    .position-relative {
+        overflow-x: auto;
+    }
+</style>
+
+<div class="custom-page-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Configuration Settings</h2>
+            <p class="text-muted">Manage webmaster configuration settings for file paths and extensions</p>
+        </div>
+        <div>
+            <DxButton Text="Clear Form" 
+                      IconCssClass="bi bi-eraser"
+                      RenderStyle="ButtonRenderStyle.Secondary"
+                      Click="@ClearForm" 
+                      CssClass="me-2" />
+            <DxButton Text="Reload Data" 
+                      IconCssClass="bi bi-arrow-clockwise"
+                      RenderStyle="ButtonRenderStyle.Info"
+                      Click="@ReloadData"
+                      Disabled="@isLoading" />
+        </div>
+    </div>
+
+    <!-- Input Fields for New Settings -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i class="@(editingId != Guid.Empty ? "bi bi-pencil-square" : "bi bi-plus-circle") me-2"></i>
+                @(editingId != Guid.Empty ? "Edit Configuration Setting" : "Add New Configuration Setting")
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Description <span class="text-danger">*</span></label>
+                    <DxTextBox @bind-Text="@newDescription" 
+                               MaxLength="50" 
+                               CssClass="w-100"
+                               NullText="Enter description..." />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Full Path <span class="text-danger">*</span></label>
+                    <DxTextBox @bind-Text="@newFullPath" 
+                               MaxLength="255" 
+                               CssClass="w-100"
+                               NullText="Enter full path..." />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">File Extensions</label>
+                    <DxMemo @bind-Text="@newFileExtensions" 
+                            Rows="3" 
+                            CssClass="w-100"
+                            NullText="Enter file extensions..." />
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12">
+                    <DxButton Text="@(editingId != Guid.Empty ? "Update Setting" : "Add Setting")" 
+                              IconCssClass="@(editingId != Guid.Empty ? "bi bi-check-lg" : "bi bi-plus-lg")"
+                              RenderStyle="ButtonRenderStyle.Success"
+                              Click="@AddSettingFromForm" 
+                              Disabled="@(string.IsNullOrWhiteSpace(newDescription) || string.IsNullOrWhiteSpace(newFullPath))"
+                              CssClass="me-2" />
+                    <DxButton Text="Clear Form" 
+                              IconCssClass="bi bi-x-circle"
+                              RenderStyle="ButtonRenderStyle.Secondary"
+                              Click="@ClearForm" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="position-relative">
+        @* Debug information *@
+        <div class="mb-2">
+            <small class="text-muted">Settings count: @settings.Count</small>
+        </div>
+
+        @* Show loading panel only when we have data AND are loading *@
+        @if (isLoading && settings.Any())
+        {
+            <DxLoadingPanel Visible="true"
+                            Text="Loading settings..."
+                            IsContentBlocked="true">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2 fw-medium">Loading settings...</div>
+                </div>
+            </DxLoadingPanel>
+        }
+
+        <DxGrid Data="@settings"
+                    KeyFieldName="@nameof(WebmasterSetting.Id)"
+                    CssClass="mt-3"
+                    PageSize="15"
+                    ShowPager="true"
+                    PagerNavigationMode="PagerNavigationMode.NumericButtons"
+                    AllowColumnResize="true"
+                    ColumnResizeMode="GridColumnResizeMode.NextColumn"
+                    LayoutChanged="@OnGridLayoutChanged"
+                    RowElementAttributes="@GetRowAttributes">
+                <Columns>
+                    <DxGridDataColumn FieldName="@nameof(WebmasterSetting.Description)" 
+                                      Caption="Description" />
+
+                    <DxGridDataColumn FieldName="@nameof(WebmasterSetting.FullPath)" 
+                                      Caption="Full Path" />
+
+                    <DxGridDataColumn FieldName="@nameof(WebmasterSetting.FileExtensions)" 
+                                      Caption="File Extensions">
+                        <EditSettings>
+                            <DxMemoSettings Rows="3" />
+                        </EditSettings>
+                        <CellDisplayTemplate>
+                            @{
+                                var setting = (WebmasterSetting)context.DataItem;
+                                var extensions = setting.FileExtensions ?? "";
+                                if (extensions.Length > 50)
+                                {
+                                    <span title="@extensions">@(extensions.Substring(0, 50))...</span>
+                                }
+                                else
+                                {
+                                    @extensions
+                                }
+                            }
+                        </CellDisplayTemplate>
+                    </DxGridDataColumn>
+
+                    <DxGridDataColumn FieldName="@nameof(WebmasterSetting.CreatedDate)" 
+                                      Caption="Created" 
+                                      DisplayFormat="MM/dd/yyyy HH:mm"
+                                      AllowEdit="false" />
+
+                    <DxGridDataColumn FieldName="@nameof(WebmasterSetting.ModifiedDate)" 
+                                      Caption="Modified" 
+                                      DisplayFormat="MM/dd/yyyy HH:mm"
+                                      AllowEdit="false">
+                        <CellDisplayTemplate>
+                            @{
+                                var setting = (WebmasterSetting)context.DataItem;
+                                if (setting.ModifiedDate.HasValue)
+                                {
+                                    @setting.ModifiedDate.Value.ToString("MM/dd/yyyy HH:mm")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Never</span>
+                                }
+                            }
+                        </CellDisplayTemplate>
+                    </DxGridDataColumn>
+
+                    <DxGridDataColumn Caption="Actions"
+                                      AllowSort="false"
+                                      Width="180px">
+                        <HeaderCaptionTemplate>
+                            <div class="text-center w-100 fs-6 text-dark fw-bold">
+                                Actions
+                            </div>
+                        </HeaderCaptionTemplate>
+                        <CellDisplayTemplate>
+                            @{
+                                var setting = (WebmasterSetting)context.DataItem;
+                                <div class="action-buttons">
+                                    <DxButton Text="Edit" 
+                                              IconCssClass="bi bi-pencil" 
+                                              RenderStyle="ButtonRenderStyle.Primary" 
+                                              RenderStyleMode="ButtonRenderStyleMode.Outline"
+                                              Click="@(() => EditSetting(setting))"
+                                              CssClass="btn-sm" />
+                                    <DxButton Text="Delete" 
+                                              IconCssClass="bi bi-trash" 
+                                              RenderStyle="ButtonRenderStyle.Danger" 
+                                              RenderStyleMode="ButtonRenderStyleMode.Outline"
+                                              Click="@(() => DeleteSetting(setting))"
+                                              CssClass="btn-sm" />
+                                </div>
+                            }
+                        </CellDisplayTemplate>
+                    </DxGridDataColumn>
+                </Columns>
+            </DxGrid>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger mt-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@errorMessage
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success mt-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@successMessage
+        </div>
+    }
+</div>
+
+@code {
+    private List<WebmasterSetting> settings = new();
+    private bool isLoading = false;  // Start as false - only load when we need to reload
+    private string? errorMessage;
+    private string? successMessage;
+
+    // Form input fields
+    private string newDescription = "";
+    private string newFullPath = "";
+    private string newFileExtensions = "";
+    private Guid editingId = Guid.Empty; // Track which setting we're editing
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load data without showing loading panel on initial load
+        await LoadSettingsAsync(showLoading: false);
+    }
+
+    private async Task OnGridLayoutChanged()
+    {
+        // Grid layout changed event - can be used for future enhancements
+        // Currently not needed since we're using percentage-based widths
+        await Task.CompletedTask;
+    }
+
+    private async Task LoadSettingsAsync(bool showLoading = true)
+    {
+        try
+        {
+            // Only show loading panel if we have existing data and user explicitly requested reload
+            if (showLoading && settings.Any())
+            {
+                isLoading = true;
+                StateHasChanged();
+                await Task.Delay(500); // Brief delay to show loading panel
+            }
+
+            errorMessage = null;
+
+            settings = await SettingsService.GetAllSettingsAsync();
+            // Ensure the list is never null
+            settings ??= new List<WebmasterSetting>();
+
+            // Debug logging
+            Console.WriteLine($"Loaded {settings.Count} settings");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading settings: {ex.Message}";
+            settings = new List<WebmasterSetting>(); // Ensure we have a valid empty list on error
+            Console.WriteLine($"Error loading settings: {ex}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReloadData()
+    {
+        await LoadSettingsAsync(showLoading: true);
+    }
+
+    private async Task AddSettingFromForm()
+    {
+        if (string.IsNullOrWhiteSpace(newDescription) || string.IsNullOrWhiteSpace(newFullPath))
+        {
+            errorMessage = "Description and Full Path are required.";
+            return;
+        }
+
+        try
+        {
+            errorMessage = null;
+            successMessage = null;
+
+            if (editingId != Guid.Empty)
+            {
+                // Update existing setting
+                var existingSetting = settings.FirstOrDefault(s => s.Id == editingId);
+                if (existingSetting != null)
+                {
+                    existingSetting.Description = newDescription.Trim();
+                    existingSetting.FullPath = newFullPath.Trim();
+                    existingSetting.FileExtensions = newFileExtensions?.Trim() ?? "";
+                    existingSetting.ModifiedDate = DateTime.Now;
+
+                    await SettingsService.UpdateSettingAsync(existingSetting);
+                    successMessage = $"Setting '{existingSetting.Description}' updated successfully!";
+                }
+            }
+            else
+            {
+                // Add new setting
+                var newSetting = new WebmasterSetting
+                {
+                    Id = Guid.NewGuid(),
+                    Description = newDescription.Trim(),
+                    FullPath = newFullPath.Trim(),
+                    FileExtensions = newFileExtensions?.Trim() ?? "",
+                    CreatedDate = DateTime.Now
+                };
+
+                await SettingsService.CreateSettingAsync(newSetting);
+                settings.Insert(0, newSetting);
+                successMessage = $"Setting '{newSetting.Description}' added successfully!";
+            }
+
+            // Clear the form
+            ClearForm();
+
+            // Clear success message after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                successMessage = null;
+                InvokeAsync(StateHasChanged);
+            });
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error {(editingId != Guid.Empty ? "updating" : "adding")} setting: {ex.Message}";
+        }
+    }
+
+    private void ClearForm()
+    {
+        newDescription = "";
+        newFullPath = "";
+        newFileExtensions = "";
+        editingId = Guid.Empty;
+        errorMessage = null;
+        successMessage = null;
+        StateHasChanged();
+    }
+
+    private void EditSetting(WebmasterSetting setting)
+    {
+        editingId = setting.Id;
+        newDescription = setting.Description;
+        newFullPath = setting.FullPath;
+        newFileExtensions = setting.FileExtensions ?? "";
+        errorMessage = null;
+        successMessage = $"Editing '{setting.Description}' - modify the fields above and click 'Add Setting' to save changes.";
+        StateHasChanged();
+    }
+
+    private async Task DeleteSetting(WebmasterSetting setting)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure you want to delete the setting '{setting.Description}'?");
+
+        if (!confirmed)
+            return;
+
+        try
+        {
+            errorMessage = null;
+            successMessage = null;
+
+            if (setting.Id != Guid.Empty)
+            {
+                await SettingsService.DeleteSettingAsync(setting.Id);
+            }
+
+            settings?.Remove(setting);
+
+            // If we were editing this setting, clear the form
+            if (editingId == setting.Id)
+            {
+                ClearForm();
+            }
+
+            successMessage = $"Deleted setting '{setting.Description}' successfully";
+
+            // Clear success message after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                successMessage = null;
+                InvokeAsync(StateHasChanged);
+            });
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error deleting setting: {ex.Message}";
+        }
+    }
+
+    private Dictionary<string, object> GetRowAttributes(WebmasterSetting setting)
+    {
+        // Format the dates with AM/PM
+        var createdDate = setting.CreatedDate.ToString("MM/dd/yyyy hh:mm tt");
+        var modifiedDate = setting.ModifiedDate?.ToString("MM/dd/yyyy hh:mm tt") ?? "Never";
+
+        // Create tooltip text with line breaks
+        var tooltipText = $"Date created: {createdDate}&#10;Date last modified: {modifiedDate}";
+
+        return new Dictionary<string, object>
+        {
+            ["title"] = tooltipText,
+            ["style"] = "cursor: help;"
+        };
+    }
+}We need to change the action associated with the file button Grid it should use ADX control, but it won't. We want it to slide up and we want the text on the slide up control to say sorry ! . Black text smaller version Sorry, it was like 18 point and we'll go to 12 point black saying this feature is not yet implemented Please try back again later When we click in the grid in the file name cell I want to show a two inch by two inch picture of the item we click away and it goes away 

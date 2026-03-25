@@ -54,9 +54,15 @@
                         <DxAccordionItem Text="📋 Test Page" 
                                         Click="@(() => NavigateAndClose("/test"))" 
                                         CssClass="nav-item-test" />
-                        <DxAccordionItem Text="🖼️ Images"
-                                        Click="@(() => NavigateAndClose("/upload-image"))" 
-                                        CssClass="nav-item-images" />
+                        <DxAccordionItem Text="📁 Files"
+                                        Click="@(() => NavigateAndClose("/file-upload"))" 
+                                        CssClass="nav-item-files" />
+                        <DxAccordionItem Text="⚙️ Webmaster Settings" CssClass="nav-item-webmaster">
+                            <Items>
+                                <DxAccordionItem Text="📥 File Download Settings" 
+                                               Click="@(() => NavigateAndClose("/webmaster-settings"))" />
+                            </Items>
+                        </DxAccordionItem>
                         <DxAccordionItem Text="📰 Articles" CssClass="nav-item-articles">
                             <Items>
                                 <DxAccordionItem Text="📖 View All" 

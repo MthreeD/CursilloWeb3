@@ -4,7 +4,8 @@ namespace CursilloWeb.Data;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
-    public DbSet<Article> Articles { get; set; }
-    public DbSet<ContentBlock> ContentBlocks { get; set; }
-    public DbSet<Test> Tests { get; set; }
+    public DbSet<Article> Articles { get; set; } = null!;
+    public DbSet<ContentBlock> ContentBlocks { get; set; } = null!;
+    public DbSet<Test> Tests { get; set; } = null!;
+    public DbSet<WebmasterSetting> WebmasterSettings { get; set; } = null!;
 }

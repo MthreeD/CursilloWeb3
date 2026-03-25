@@ -1,12 +1,26 @@
 ﻿@inherits LayoutComponentBase
 @inject CursilloWeb.Services.ContentService ContentService
+@inject NavigationManager Navigation
 
 <div class="page-container">
     <InteractiveHeader HeaderHtml="@HeaderHtml" />
 
-    <main class="container my-4">
-        @Body
-    </main>
+    @{
+        var isWebmasterSettings = Navigation.Uri.Contains("/webmaster-settings");
+    }
+
+    @if (isWebmasterSettings)
+    {
+        <main class="my-4" style="width: 100vw; margin: 0; padding: 0; max-width: none;">
+            @Body
+        </main>
+    }
+    else
+    {
+        <main class="container my-4">
+            @Body
+        </main>
+    }
 
     <!-- Test Display Content inserted here taking up full width as requested -->
     <TestDisplayViewer />

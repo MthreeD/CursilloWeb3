@@ -18,6 +18,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddScoped<ArticleService>();
 builder.Services.AddScoped<ContentService>();
 builder.Services.AddScoped<DatabaseFixService>();
+builder.Services.AddScoped<WebmasterSettingsService>();
 // Register browser lifecycle services to stop application when browser closes
 builder.Services.AddSingleton<BrowserLifecycleService>();
 builder.Services.AddScoped<Microsoft.AspNetCore.Components.Server.Circuits.CircuitHandler, ShutdownCircuitHandler>();
