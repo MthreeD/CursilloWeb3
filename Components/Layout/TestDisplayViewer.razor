@@ -43,9 +43,9 @@
         {
             using var dbContext = await DbContextFactory.CreateDbContextAsync();
             var testEntity = await dbContext.Tests.FirstOrDefaultAsync();
-            if (testEntity != null && !string.IsNullOrEmpty(testEntity.HtmlTest))
+            if (testEntity != null && !string.IsNullOrEmpty(testEntity.HTMLText))
             {
-                TestContentBytes = System.Text.Encoding.UTF8.GetBytes(testEntity.HtmlTest);
+                TestContentBytes = System.Text.Encoding.UTF8.GetBytes(testEntity.HTMLText);
             }
         }
         catch

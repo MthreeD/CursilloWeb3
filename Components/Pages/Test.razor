@@ -68,6 +68,30 @@
                         </div>
                     </div>
 
+                    <!-- Font Name Section -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Font Name:</label>
+                        <div style="width: 240px;">
+                            <DxComboBox Data="@AvailableFonts"
+                                        @bind-Value="@CurrentTest.FontName"
+                                        NullText="Select font..."
+                                        CssClass="w-100"
+                                        ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" />
+                        </div>
+                    </div>
+
+                    <!-- Font Size Section -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Font Size:</label>
+                        <div style="width: 150px;">
+                            <DxComboBox Data="@AvailableFontSizes"
+                                        @bind-Value="@CurrentTest.FontSize"
+                                        NullText="Select size..."
+                                        CssClass="w-100"
+                                        ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto" />
+                        </div>
+                    </div>
+
                     <!-- Font Images Section -->
                     <div class="flex-shrink-0">
                         <label class="form-label fw-bold">Font Images:</label>
@@ -86,7 +110,7 @@
                     <DxFormLayoutItem Caption="Edit Contents:" ColSpanMd="12">
                         <Template>
                             <div style="margin-left: -10px; margin-right: -10px; width: calc(100% + 20px); border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; box-sizing: border-box;">
-                                <DxHtmlEditor @bind-Markup="CurrentTest.HtmlTest"
+                                <DxHtmlEditor @bind-Markup="CurrentTest.HTMLText"
                                               CssClass="w-100 header-size-editor" />
                             </div>
                         </Template>
@@ -158,16 +182,16 @@
         max-height: 120px !important;
         overflow-y: auto;
         background-color: @ColorValue !important;
-        font-family: 'Segoe UI Light', sans-serif !important;
-        font-size: 12pt !important;
+        font-family: '@EditorFontFamily', sans-serif !important;
+        font-size: @EditorFontSize !important;
     }
 
     /* Set default font for new content */
     .header-size-editor .dx-htmleditor-content p,
     .header-size-editor .dx-htmleditor-content div,
     .header-size-editor .dx-htmleditor-content span {
-        font-family: 'Segoe UI Light', sans-serif;
-        font-size: 12pt;
+        font-family: '@EditorFontFamily', sans-serif;
+        font-size: @EditorFontSize;
     }
 
     .header-size-editor .dx-htmleditor-content h1,
@@ -228,6 +252,81 @@
         margin-bottom: 8px;
         color: #333;
     }
+
+    /* Image Alignment Classes */
+    .header-size-editor .dx-htmleditor-content img.align-left,
+    .header-size-editor .dx-htmleditor-content svg.align-left {
+        float: left;
+        margin: 0 10px 10px 0;
+        clear: left;
+    }
+
+    .header-size-editor .dx-htmleditor-content img.align-right,
+    .header-size-editor .dx-htmleditor-content svg.align-right {
+        float: right;
+        margin: 0 0 10px 10px;
+        clear: right;
+    }
+
+    .header-size-editor .dx-htmleditor-content img.align-center,
+    .header-size-editor .dx-htmleditor-content svg.align-center {
+        display: block;
+        margin: 10px auto;
+        float: none;
+        clear: both;
+    }
+
+    .header-size-editor .dx-htmleditor-content img.align-inline,
+    .header-size-editor .dx-htmleditor-content svg.align-inline {
+        display: inline;
+        margin: 0 5px;
+        float: none;
+        vertical-align: middle;
+    }
+
+    .header-size-editor .dx-htmleditor-content img.align-behind,
+    .header-size-editor .dx-htmleditor-content svg.align-behind {
+        position: absolute;
+        z-index: -1;
+        opacity: 0.3;
+    }
+
+    /* Context Menu Styling */
+    .image-context-menu {
+        position: absolute;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        padding: 5px 0;
+        z-index: 10000;
+        min-width: 160px;
+    }
+
+    .image-context-menu button {
+        display: block;
+        width: 100%;
+        padding: 8px 15px;
+        border: none;
+        background: none;
+        text-align: left;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .image-context-menu button:hover {
+        background-color: #f0f0f0;
+    }
+
+    .image-context-menu button:active {
+        background-color: #e0e0e0;
+    }
+
+    .image-context-menu hr {
+        margin: 5px 0;
+        border: none;
+        border-top: 1px solid #e0e0e0;
+    }
 </style>
 
 <script>
@@ -252,6 +351,185 @@ window.focusHtmlEditor = () => {
         }
     }, 300);
 };
+
+// SVG and Image sizing to 1 inch (96px at 96 DPI)
+window.initializeImageSizing = () => {
+    const editor = document.querySelector('.dx-htmleditor-content');
+    if (!editor) return;
+
+    // MutationObserver to watch for newly added images/SVGs
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            mutation.addedNodes.forEach((node) => {
+                // Check if the node is an IMG or SVG element
+                if (node.nodeName === 'IMG' || node.nodeName === 'SVG') {
+                    resizeToOneInch(node);
+                    attachImageContextMenu(node);
+                }
+                // Check for IMG or SVG within added nodes
+                if (node.querySelectorAll) {
+                    const images = node.querySelectorAll('img, svg');
+                    images.forEach(img => {
+                        resizeToOneInch(img);
+                        attachImageContextMenu(img);
+                    });
+                }
+            });
+        });
+    });
+
+    // Start observing
+    observer.observe(editor, {
+        childList: true,
+        subtree: true
+    });
+
+    // Also resize any existing images/SVGs
+    const existingImages = editor.querySelectorAll('img, svg');
+    existingImages.forEach(img => {
+        resizeToOneInch(img);
+        attachImageContextMenu(img);
+    });
+
+    // Handle paste events
+    editor.addEventListener('paste', (e) => {
+        setTimeout(() => {
+            const images = editor.querySelectorAll('img:not([data-sized]), svg:not([data-sized])');
+            images.forEach(img => {
+                resizeToOneInch(img);
+                attachImageContextMenu(img);
+            });
+        }, 100);
+    });
+
+    // Close context menu on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.image-context-menu')) {
+            removeContextMenu();
+        }
+    });
+};
+
+function resizeToOneInch(element) {
+    // Skip if already sized
+    if (element.hasAttribute('data-sized')) return;
+
+    // 1 inch = 96 pixels at 96 DPI (standard screen resolution)
+    const oneInchPx = 96;
+
+    if (element.nodeName === 'SVG') {
+        // For SVG elements
+        element.setAttribute('width', oneInchPx + 'px');
+        element.setAttribute('height', oneInchPx + 'px');
+        element.style.width = oneInchPx + 'px';
+        element.style.height = oneInchPx + 'px';
+    } else if (element.nodeName === 'IMG') {
+        // For IMG elements
+        element.style.width = oneInchPx + 'px';
+        element.style.height = oneInchPx + 'px';
+        element.setAttribute('width', oneInchPx);
+        element.setAttribute('height', oneInchPx);
+    }
+
+    // Mark as sized
+    element.setAttribute('data-sized', 'true');
+}
+
+// Image Context Menu for Alignment
+let currentContextMenuTarget = null;
+
+function attachImageContextMenu(element) {
+    // Skip if already attached
+    if (element.hasAttribute('data-context-attached')) return;
+
+    element.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showImageContextMenu(e, element);
+    });
+
+    element.setAttribute('data-context-attached', 'true');
+    element.style.cursor = 'pointer';
+}
+
+function showImageContextMenu(event, targetElement) {
+    removeContextMenu();
+    currentContextMenuTarget = targetElement;
+
+    const menu = document.createElement('div');
+    menu.className = 'image-context-menu';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+
+    menu.innerHTML = `
+        <button onclick="applyImageAlignment('left')">?? Align Left (Text Wraps Right)</button>
+        <button onclick="applyImageAlignment('right')">?? Align Right (Text Wraps Left)</button>
+        <button onclick="applyImageAlignment('center')">?? Align Center</button>
+        <button onclick="applyImageAlignment('inline')">?? Inline with Text</button>
+        <hr>
+        <button onclick="applyImageAlignment('behind')">??? Behind Text (Watermark)</button>
+        <hr>
+        <button onclick="resetImageAlignment()">? Reset Alignment</button>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Prevent menu from going off-screen
+    const menuRect = menu.getBoundingClientRect();
+    if (menuRect.right > window.innerWidth) {
+        menu.style.left = (event.pageX - menuRect.width) + 'px';
+    }
+    if (menuRect.bottom > window.innerHeight) {
+        menu.style.top = (event.pageY - menuRect.height) + 'px';
+    }
+}
+
+function removeContextMenu() {
+    const existingMenu = document.querySelector('.image-context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+}
+
+function applyImageAlignment(alignment) {
+    if (!currentContextMenuTarget) return;
+
+    // Remove all alignment classes
+    currentContextMenuTarget.classList.remove('align-left', 'align-right', 'align-center', 'align-inline', 'align-behind');
+
+    // Remove inline float styles
+    currentContextMenuTarget.style.float = '';
+    currentContextMenuTarget.style.display = '';
+    currentContextMenuTarget.style.margin = '';
+    currentContextMenuTarget.style.position = '';
+    currentContextMenuTarget.style.zIndex = '';
+    currentContextMenuTarget.style.opacity = '';
+
+    // Apply new alignment
+    if (alignment) {
+        currentContextMenuTarget.classList.add('align-' + alignment);
+        currentContextMenuTarget.setAttribute('data-alignment', alignment);
+    }
+
+    removeContextMenu();
+    currentContextMenuTarget = null;
+}
+
+function resetImageAlignment() {
+    if (!currentContextMenuTarget) return;
+
+    // Remove all alignment classes and inline styles
+    currentContextMenuTarget.classList.remove('align-left', 'align-right', 'align-center', 'align-inline', 'align-behind');
+    currentContextMenuTarget.style.float = '';
+    currentContextMenuTarget.style.display = '';
+    currentContextMenuTarget.style.margin = '';
+    currentContextMenuTarget.style.position = '';
+    currentContextMenuTarget.style.zIndex = '';
+    currentContextMenuTarget.style.opacity = '';
+    currentContextMenuTarget.removeAttribute('data-alignment');
+
+    removeContextMenu();
+    currentContextMenuTarget = null;
+}
 </script>
 
 @code {
@@ -262,11 +540,33 @@ window.focusHtmlEditor = () => {
     private bool IsError = false;
     private bool FontImagesPopupVisible = false;
 
+    private List<string> AvailableFonts = new List<string>
+    {
+        "Segoe UI Light",
+        "Arial",
+        "Verdana",
+        "Times New Roman",
+        "Georgia",
+        "Courier New",
+        "Comic Sans MS",
+        "Impact",
+        "Trebuchet MS",
+        "Calibri"
+    };
+
+    private List<string> AvailableFontSizes = new List<string>
+    {
+        "8pt", "9pt", "10pt", "11pt", "12pt", "14pt", "16pt", "18pt", "20pt", "24pt", "28pt", "32pt", "36pt"
+    };
+
     private object ColorValue 
     { 
-        get => !string.IsNullOrEmpty(CurrentTest.TextBoxText) ? CurrentTest.TextBoxText : "#66CDFF";
-        set => CurrentTest.TextBoxText = value?.ToString();
+        get => !string.IsNullOrEmpty(CurrentTest.BackgroundColor) ? CurrentTest.BackgroundColor : "#66CDFF";
+        set => CurrentTest.BackgroundColor = value?.ToString();
     }
+
+    private string EditorFontFamily => !string.IsNullOrEmpty(CurrentTest.FontName) ? CurrentTest.FontName : "Segoe UI Light";
+    private string EditorFontSize => !string.IsNullOrEmpty(CurrentTest.FontSize) ? CurrentTest.FontSize : "12pt";
 
     string GetColorDropDownValue(IDropDownBox dropDownBox) {
         return dropDownBox.Value as string ?? "#66CDFF";
@@ -295,6 +595,7 @@ window.focusHtmlEditor = () => {
         if (firstRender)
         {
             await JSRuntime.InvokeVoidAsync("focusHtmlEditor");
+            await JSRuntime.InvokeVoidAsync("initializeImageSizing");
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -315,10 +616,21 @@ window.focusHtmlEditor = () => {
                 CurrentTest = existingTest;
             }
 
-            if (string.IsNullOrEmpty(CurrentTest.HtmlTest))
+            // Set defaults if not set
+            if (string.IsNullOrEmpty(CurrentTest.FontName))
+            {
+                CurrentTest.FontName = "Segoe UI Light";
+            }
+
+            if (string.IsNullOrEmpty(CurrentTest.FontSize))
+            {
+                CurrentTest.FontSize = "12pt";
+            }
+
+            if (string.IsNullOrEmpty(CurrentTest.HTMLText))
             {
                 // Initialize with default font and size - using visible content
-                CurrentTest.HtmlTest = @"<p><span style=""font-family: 'Segoe UI Light', sans-serif; font-size: 12pt;"">Type your content here...</span></p>";
+                CurrentTest.HTMLText = $@"<p><span style=""font-family: '{EditorFontFamily}', sans-serif; font-size: {EditorFontSize};"">Type your content here...</span></p>";
             }
         }
         catch (Exception ex)

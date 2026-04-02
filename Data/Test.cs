@@ -6,9 +6,13 @@ public class Test
 {
     public Guid Id { get; set; }
 
-    public string? TextBoxText { get; set; }
+    public string? BackgroundColor { get; set; }
 
-    public string? HtmlTest { get; set; }
+    public string? FontName { get; set; }
+
+    public string? FontSize { get; set; }
+
+    public string? HTMLText { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
