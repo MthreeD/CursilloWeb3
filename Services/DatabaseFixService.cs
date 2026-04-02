@@ -34,7 +34,7 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
                         Id,
                         Section,
                         CONVERT(nvarchar(max), HtmlContent) as HtmlContentText,
-                        CONVERT(nvarchar(max), RichTextContent) as RichTextContentText,
+                        CONVERT(nvarchar(max), RTFContent) as RichTextContentText,
                         LastUpdated
                     FROM ContentBlocks")
                 .ToListAsync();
@@ -43,13 +43,13 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
 
             // Step 3: Drop and recreate table with clean schema
             await context.Database.ExecuteSqlRawAsync("DROP TABLE ContentBlocks;");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TABLE ContentBlocks (
                     Id uniqueidentifier NOT NULL PRIMARY KEY DEFAULT NEWID(),
                     Section nvarchar(max) NOT NULL,
                     HtmlContent nvarchar(max) NULL,
-                    RichTextContent nvarchar(max) NULL,
+                    RTFContent nvarchar(max) NULL,
                     LastUpdated datetime2 NOT NULL DEFAULT GETDATE()
                 );");
 

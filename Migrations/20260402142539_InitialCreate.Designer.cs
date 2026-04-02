@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CursilloWeb.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260325044006_AddWebmasterSettingsTable")]
-    partial class AddWebmasterSettingsTable
+    [Migration("20260402142539_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

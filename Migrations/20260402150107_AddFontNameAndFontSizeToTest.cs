@@ -5,14 +5,20 @@
 namespace CursilloWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMissingHtmlContentColumn : Migration
+    public partial class AddFontNameAndFontSizeToTest : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<string>(
-                name: "HtmlContent",
-                table: "ContentBlocks",
+                name: "FontName",
+                table: "Tests",
+                type: "nvarchar(max)",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "FontSize",
+                table: "Tests",
                 type: "nvarchar(max)",
                 nullable: true);
         }
@@ -21,8 +27,12 @@ namespace CursilloWeb.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "HtmlContent",
-                table: "ContentBlocks");
+                name: "FontName",
+                table: "Tests");
+
+            migrationBuilder.DropColumn(
+                name: "FontSize",
+                table: "Tests");
         }
     }
 }

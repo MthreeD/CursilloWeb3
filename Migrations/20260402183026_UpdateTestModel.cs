@@ -5,7 +5,7 @@
 namespace CursilloWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class UpdateModelSnapshot : Migration
+    public partial class UpdateTestModel : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

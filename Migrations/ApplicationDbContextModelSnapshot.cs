@@ -86,6 +86,12 @@ namespace CursilloWeb.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("FontName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FontSize")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("HtmlTest")
                         .HasColumnType("nvarchar(max)");
 

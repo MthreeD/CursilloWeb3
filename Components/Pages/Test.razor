@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @using CursilloWeb.Data
 @using Microsoft.EntityFrameworkCore
+@using DevExpress.Blazor.RichEdit
+@using System.Drawing
 
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
@@ -79,15 +81,44 @@
                                       CssClass="w-100" />
                         </div>
                     </div>
+
+                    <!-- Saved Font Name -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Saved Font Name:</label>
+                        <div style="width: 200px;">
+                            <DxTextBox @ref="savedFontName"
+                                       @bind-Text="@CurrentTest.FontName"
+                                       CssClass="w-100"
+                                       Placeholder="Font Name..." />
+                        </div>
+                    </div>
+
+                    <!-- Saved Font Size -->
+                    <div class="flex-shrink-0">
+                        <label class="form-label fw-bold">Saved Font Size:</label>
+                        <div style="width: 120px;">
+                            <DxTextBox @ref="savedFontSize"
+                                       @bind-Text="@CurrentTest.FontSize"
+                                       CssClass="w-100"
+                                       Placeholder="Font Size..." />
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Edit Contents Section -->
+                <!-- RTF Text Input Section -->
                 <DxFormLayout CaptionPosition="CaptionPosition.Vertical">
-                    <DxFormLayoutItem Caption="Edit Contents:" ColSpanMd="12">
+                    <DxFormLayoutItem Caption="RTF Text Input:" ColSpanMd="12">
                         <Template>
                             <div style="margin-left: -10px; margin-right: -10px; width: calc(100% + 20px); border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; box-sizing: border-box;">
-                                <DxHtmlEditor @bind-Markup="CurrentTest.HtmlTest"
-                                              CssClass="w-100 header-size-editor" />
+                                <DxRichEdit @ref="rtfTextInput"
+                                            DocumentContent="@documentContent"
+                                            DocumentContentChanged="@OnDocumentContentChanged"
+                                            SelectionChanged="@OnSelectionChanged"
+                                            CustomizeRibbon="@OnCustomizeRibbon"
+                                            CssClass="w-100 header-size-editor"
+                                            DocumentFormat="DocumentFormat.OpenXml"
+                                            ReadOnly="false"
+                                            BarMode="BarMode.Ribbon" />
                             </div>
                         </Template>
                     </DxFormLayoutItem>
@@ -152,48 +183,23 @@
         box-sizing: border-box;
     }
 
-    .header-size-editor .dx-htmleditor-content {
+    .header-size-editor .dxbl-richedit {
         height: 120px !important;
         min-height: 120px !important;
-        max-height: 120px !important;
-        overflow-y: auto;
+    }
+
+    .header-size-editor .dxbl-richedit-content {
         background-color: @ColorValue !important;
         font-family: 'Segoe UI Light', sans-serif !important;
         font-size: 12pt !important;
     }
 
     /* Set default font for new content */
-    .header-size-editor .dx-htmleditor-content p,
-    .header-size-editor .dx-htmleditor-content div,
-    .header-size-editor .dx-htmleditor-content span {
+    .header-size-editor .dxbl-richedit-content p,
+    .header-size-editor .dxbl-richedit-content div,
+    .header-size-editor .dxbl-richedit-content span {
         font-family: 'Segoe UI Light', sans-serif;
         font-size: 12pt;
-    }
-
-    .header-size-editor .dx-htmleditor-content h1,
-    .header-size-editor .dx-htmleditor-content h2,
-    .header-size-editor .dx-htmleditor-content h3,
-    .header-size-editor .dx-htmleditor-content h4,
-    .header-size-editor .dx-htmleditor-content h5,
-    .header-size-editor .dx-htmleditor-content h6 {
-        font-family: var(--font-serif);
-        color: var(--primary-color);
-    }
-
-    /* Style the drop-down items for the format menu to reflect site header fonts */
-    .dx-htmleditor-toolbar-format-list .dxbl-listbox-item-text,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text {
-        font-family: var(--font-sans);
-    }
-
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h1,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h2,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h3,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h4,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h5,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h6 {
-        font-family: var(--font-serif);
-        color: var(--primary-color);
     }
 
     .dropdown-template-color-palette {
@@ -231,41 +237,160 @@
 </style>
 
 <script>
-window.focusHtmlEditor = () => {
-    setTimeout(() => {
-        const editor = document.querySelector('.dx-htmleditor-content');
-        if (editor) {
-            editor.focus();
-            // Brief selection to trigger toolbar update
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            selection.removeAllRanges();
-            selection.addRange(range);
+    window.resizeSvgImages = () => {
+        try {
+            // Find all images in the RichEdit content area
+            const richEditContent = document.querySelector('.dxbl-richedit-content, .dx-richedit-content');
+            if (richEditContent) {
+                const images = richEditContent.querySelectorAll('img');
 
-            setTimeout(() => {
-                selection.removeAllRanges();
-                range.setStart(editor.firstChild || editor, 0);
-                range.setEnd(editor.firstChild || editor, 0);
-                selection.addRange(range);
-            }, 50);
+                images.forEach(img => {
+                    // Check if the image source ends with .svg
+                    const src = img.src || img.getAttribute('src') || '';
+                    if (src.toLowerCase().endsWith('.svg')) {
+                        // Set width to 1 inch (96 pixels at standard DPI)
+                        img.style.width = '96px';
+                        img.setAttribute('width', '96');
+
+                        console.log('Resized SVG image to 1 inch width:', src);
+                    }
+                });
+            }
+        } catch (e) {
+            console.error('Error resizing SVG images:', e);
         }
-    }, 300);
-};
+    };
 </script>
 
 @code {
+    // Static list to load fonts once and persist them for the session
+    private static readonly List<string> SystemFonts = FontFamily.Families
+        .Select(f => f.Name)
+        .OrderBy(n => n)
+        .ToList();
+
     private CursilloWeb.Data.Test CurrentTest = new CursilloWeb.Data.Test();
     private bool IsLoading = false;
     private bool IsSaving = false;
     private string Message = string.Empty;
     private bool IsError = false;
     private bool FontImagesPopupVisible = false;
+    private DxRichEdit? rtfTextInput;
+    private DxTextBox? savedFontName;
+    private DxTextBox? savedFontSize;
+    private byte[]? documentContent;
+    private bool _isUpdatingFont = false;
+    private bool _isUpdatingFontSize = false;
+    private bool _isCustomizingToolbar = false;
 
-    private object ColorValue 
+    private object ColorValue
     { 
         get => !string.IsNullOrEmpty(CurrentTest.TextBoxText) ? CurrentTest.TextBoxText : "#66CDFF";
         set => CurrentTest.TextBoxText = value?.ToString();
+    }
+
+    void OnCustomizeRibbon(IRibbon ribbon)
+    {
+        // Prevent recursive ribbon customization
+        if (_isCustomizingToolbar) return;
+
+        try
+        {
+            _isCustomizingToolbar = true;
+
+            // Access the Home tab's Font group
+            var homeTab = ribbon.Tabs[RichEditRibbonTabNames.Home];
+            var fontGroup = homeTab.Groups[RichEditRibbonGroupNames.HomeFont];
+
+            // 1. Remove the default Font Name selector
+            fontGroup.Items.Remove(RichEditBarItemNames.FontName);
+
+            // 2. Add the custom Font Name ComboBox
+            var customFontCombo = fontGroup.Items.AddCustomComboBox(
+                0,
+                () => CurrentTest.FontName ?? "Segoe UI Light",
+                async (newFontValue) =>
+                {
+                    // Prevent recursive updates
+                    if (_isUpdatingFont) return;
+
+                    try
+                    {
+                        _isUpdatingFont = true;
+                        var newFont = newFontValue?.ToString() ?? "Segoe UI Light";
+
+                        // Only update if value actually changed
+                        if (CurrentTest.FontName != newFont)
+                        {
+                            CurrentTest.FontName = newFont;
+
+                            // Defer StateHasChanged to avoid interrupting the combo box interaction
+                            await Task.Delay(50);
+                            await InvokeAsync(() => StateHasChanged());
+                        }
+                    }
+                    finally
+                    {
+                        _isUpdatingFont = false;
+                    }
+                }
+            );
+
+            // 3. Populate with the pre-loaded system fonts
+            foreach (var font in SystemFonts)
+            {
+                customFontCombo.Items.Add(font, font);
+            }
+
+            // 4. Remove the default Font Size selector
+            fontGroup.Items.Remove(RichEditBarItemNames.FontSize);
+
+            // 5. Add the custom Font Size ComboBox
+            var customFontSizeCombo = fontGroup.Items.AddCustomComboBox(
+                2, // Position after font name
+                () => CurrentTest.FontSize ?? "12",
+                async (newSizeValue) =>
+                {
+                    // Prevent recursive updates
+                    if (_isUpdatingFontSize) return;
+
+                    try
+                    {
+                        _isUpdatingFontSize = true;
+                        var newSize = newSizeValue?.ToString() ?? "12";
+
+                        // Only update if value actually changed
+                        if (CurrentTest.FontSize != newSize)
+                        {
+                            CurrentTest.FontSize = newSize;
+
+                            // Defer StateHasChanged to avoid interrupting the combo box interaction
+                            await Task.Delay(50);
+                            await InvokeAsync(() => StateHasChanged());
+                        }
+                    }
+                    finally
+                    {
+                        _isUpdatingFontSize = false;
+                    }
+                }
+            );
+
+            // 6. Populate with common font sizes
+            var fontSizes = new[] { "8", "9", "10", "11", "12", "14", "16", "18", "20", "22", "24", "26", "28", "36", "48", "72" };
+            foreach (var size in fontSizes)
+            {
+                customFontSizeCombo.Items.Add(size, size);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error customizing ribbon: {ex.Message}");
+        }
+        finally
+        {
+            _isCustomizingToolbar = false;
+        }
     }
 
     string GetColorDropDownValue(IDropDownBox dropDownBox) {
@@ -290,15 +415,6 @@ window.focusHtmlEditor = () => {
         await LoadTest();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await JSRuntime.InvokeVoidAsync("focusHtmlEditor");
-        }
-        await base.OnAfterRenderAsync(firstRender);
-    }
-
     private void ShowFontImagesPopup()
     {
         FontImagesPopupVisible = true;
@@ -313,12 +429,30 @@ window.focusHtmlEditor = () => {
             if (existingTest != null)
             {
                 CurrentTest = existingTest;
+
+                // Load document content if exists (stored as base64 string in HtmlTest)
+                if (!string.IsNullOrEmpty(CurrentTest.HtmlTest))
+                {
+                    try
+                    {
+                        documentContent = Convert.FromBase64String(CurrentTest.HtmlTest);
+                    }
+                    catch
+                    {
+                        // If conversion fails, initialize empty document
+                        documentContent = null;
+                    }
+                }
             }
 
-            if (string.IsNullOrEmpty(CurrentTest.HtmlTest))
+            // Initialize default font values if not set
+            if (string.IsNullOrEmpty(CurrentTest.FontName))
             {
-                // Initialize with default font and size - using visible content
-                CurrentTest.HtmlTest = @"<p><span style=""font-family: 'Segoe UI Light', sans-serif; font-size: 12pt;"">Type your content here...</span></p>";
+                CurrentTest.FontName = "Segoe UI Light";
+            }
+            if (string.IsNullOrEmpty(CurrentTest.FontSize))
+            {
+                CurrentTest.FontSize = "12";
             }
         }
         catch (Exception ex)
@@ -330,6 +464,50 @@ window.focusHtmlEditor = () => {
         {
             IsLoading = false;
         }
+    }
+
+    private void OnDocumentContentChanged(byte[] content)
+    {
+        documentContent = content;
+
+        // Store as base64 string in HtmlTest field
+        if (content != null && content.Length > 0)
+        {
+            CurrentTest.HtmlTest = Convert.ToBase64String(content);
+
+            // Process SVG images after document changes
+            _ = ProcessSvgImagesAsync();
+        }
+        else
+        {
+            CurrentTest.HtmlTest = string.Empty;
+        }
+    }
+
+    private async Task ProcessSvgImagesAsync()
+    {
+        if (rtfTextInput == null) return;
+
+        try
+        {
+            // Small delay to ensure document is fully rendered in DOM
+            await Task.Delay(200);
+
+            // Call JavaScript to find and resize SVG images
+            await JSRuntime.InvokeVoidAsync("resizeSvgImages");
+
+            Console.WriteLine("SVG image processing completed");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error processing SVG images: {ex.Message}");
+        }
+    }
+
+    private void OnSelectionChanged()
+    {
+        // Don't call StateHasChanged - it triggers excessive re-renders
+        // The text boxes are bound to CurrentTest properties and will update automatically
     }
 
     private async Task SaveTest()
@@ -349,20 +527,66 @@ window.focusHtmlEditor = () => {
             }
             else
             {
-                // Update existing
+                // Update existing - ensure entity is properly tracked
                 CurrentTest.LastUpdated = DateTime.Now;
-                DbContext.Tests.Update(CurrentTest);
+
+                // Check if entity is already tracked
+                var existingEntry = DbContext.ChangeTracker.Entries<CursilloWeb.Data.Test>()
+                    .FirstOrDefault(e => e.Entity.Id == CurrentTest.Id);
+
+                if (existingEntry == null)
+                {
+                    // Entity not tracked, attach and mark as modified
+                    DbContext.Tests.Attach(CurrentTest);
+                    DbContext.Entry(CurrentTest).State = EntityState.Modified;
+                }
+                else
+                {
+                    // Entity already tracked, update its properties
+                    existingEntry.Entity.TextBoxText = CurrentTest.TextBoxText;
+                    existingEntry.Entity.HtmlTest = CurrentTest.HtmlTest;
+                    existingEntry.Entity.FontName = CurrentTest.FontName;
+                    existingEntry.Entity.FontSize = CurrentTest.FontSize;
+                    existingEntry.Entity.LastUpdated = CurrentTest.LastUpdated;
+                }
             }
 
             await DbContext.SaveChangesAsync();
 
+            // Reload the entity to ensure we have the latest version from the database
+            await DbContext.Entry(CurrentTest).ReloadAsync();
+
+            // Refresh the document content binding from the saved entity
+            if (!string.IsNullOrEmpty(CurrentTest.HtmlTest))
+            {
+                try
+                {
+                    documentContent = Convert.FromBase64String(CurrentTest.HtmlTest);
+                }
+                catch
+                {
+                    documentContent = null;
+                }
+            }
+            else
+            {
+                documentContent = null;
+            }
+
             Message = "Test data saved successfully!";
             IsError = false;
+
+            Console.WriteLine($"Saved: FontName={CurrentTest.FontName}, FontSize={CurrentTest.FontSize}, HtmlTest length={CurrentTest.HtmlTest?.Length ?? 0}");
+
+            // Force UI refresh to update the RichEdit binding
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Message = $"Error saving test data: {ex.Message}";
             IsError = true;
+            Console.WriteLine($"Save error: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
         finally
         {

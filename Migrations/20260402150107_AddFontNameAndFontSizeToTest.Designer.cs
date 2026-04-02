@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CursilloWeb.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260320171648_SyncRichTextContentColumn")]
-    partial class SyncRichTextContentColumn
+    [Migration("20260402150107_AddFontNameAndFontSizeToTest")]
+    partial class AddFontNameAndFontSizeToTest
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -63,14 +63,12 @@ namespace CursilloWeb.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("HtmlContent")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("LastUpdated")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("RichTextContent")
-                        .IsRequired()
+                    b.Property<string>("RTFContent")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Section")
@@ -80,6 +78,66 @@ namespace CursilloWeb.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ContentBlocks");
+                });
+
+            modelBuilder.Entity("CursilloWeb.Data.Test", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FontName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FontSize")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("HtmlTest")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TextBoxText")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Tests");
+                });
+
+            modelBuilder.Entity("CursilloWeb.Data.WebmasterSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileExtensions")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FullPath")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("ModifiedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WebmasterSettings");
                 });
 #pragma warning restore 612, 618
         }
