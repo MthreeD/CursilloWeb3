@@ -9,10 +9,10 @@
 @if (!IsLoading && TestContentBytes != null)
 {
     <div class="test-display-viewer-container">
-        <DxRichEdit ReadOnly="true"
+        <DxRichEdit ReadOnly="false"
                     BarMode="BarMode.None"
                     ViewType="ViewType.Simple"
-                    DocumentFormat="DocumentFormat.Html"
+                    DocumentFormat="DocumentFormat.Rtf"
                     DocumentContent="@TestContentBytes"
                     CssClass="w-100 test-rich-edit" />
     </div>
@@ -20,11 +20,16 @@
 
 <style>
     .test-display-viewer-container {
-        pointer-events: none; /* Make click interactions impossible */
         width: 100%;
         background-color: #fff;
+        position: relative;
+        z-index: 1;
     }
-    
+
+    .test-display-viewer-container .test-rich-edit {
+        pointer-events: auto;
+    }
+
     /* Hide the DevExpress Ribbon/Toolbar for this specific control */
     .test-display-viewer-container .dx-richedit-ribbon,
     .test-display-viewer-container .dxbr-ribbon,
@@ -43,9 +48,9 @@
         {
             using var dbContext = await DbContextFactory.CreateDbContextAsync();
             var testEntity = await dbContext.Tests.FirstOrDefaultAsync();
-            if (testEntity != null && !string.IsNullOrEmpty(testEntity.HTMLText))
+            if (testEntity != null && testEntity.RTFContent != null && testEntity.RTFContent.Length > 0)
             {
-                TestContentBytes = System.Text.Encoding.UTF8.GetBytes(testEntity.HTMLText);
+                TestContentBytes = testEntity.RTFContent;
             }
         }
         catch

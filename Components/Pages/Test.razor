@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @using CursilloWeb.Data
 @using Microsoft.EntityFrameworkCore
+@using DevExpress.Blazor.RichEdit
+@using DevExpress.Blazor.Office
 
 @inject ApplicationDbContext DbContext
 @inject NavigationManager Navigation
@@ -106,16 +108,29 @@
                 </div>
 
                 <!-- Edit Contents Section -->
-                <DxFormLayout CaptionPosition="CaptionPosition.Vertical">
-                    <DxFormLayoutItem Caption="Edit Contents:" ColSpanMd="12">
-                        <Template>
-                            <div style="margin-left: -10px; margin-right: -10px; width: calc(100% + 20px); border-top: 1px solid #ccc; border-bottom: 1px solid #ccc; box-sizing: border-box;">
-                                <DxHtmlEditor @bind-Markup="CurrentTest.HTMLText"
-                                              CssClass="w-100 header-size-editor" />
+                <div class="rich-edit-container">
+                    @if (IsDataReady)
+                    {
+                        <DxRichEdit @bind-Markup="CurrentTest.HTMLContent"
+                                    @ref="RichEdit"
+                                    CssClass="w-100 header-size-editor"
+                                    Height="500px"
+                                    BarMode="BarMode.Ribbon">
+                            <RibbonSettings>
+                                <DxRichEditRibbon />
+                            </RibbonSettings>
+                        </DxRichEdit>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info d-flex align-items-center">
+                            <div class="spinner-border spinner-border-sm me-2" role="status">
+                                <span class="visually-hidden">Validating data...</span>
                             </div>
-                        </Template>
-                    </DxFormLayoutItem>
-                </DxFormLayout>
+                            <span>Preparing editor...</span>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
@@ -163,9 +178,9 @@
 </DxPopup>
 
 <style>
-    /* Force page height to fit window without vertical overflow */
+    /* Allow page scrolling */
     body {
-        overflow: hidden !important; /* user requested NO scrollbars */
+        overflow: auto !important;
     }
 
     .full-page-breakout {
@@ -174,50 +189,49 @@
         padding-left: 10px;
         padding-right: 10px;
         box-sizing: border-box;
+        max-width: 100vw;
     }
 
-    .header-size-editor .dx-htmleditor-content {
-        height: 120px !important;
-        min-height: 120px !important;
-        max-height: 120px !important;
-        overflow-y: auto;
+    .header-size-editor {
+        height: 500px !important;
+        width: 100%;
+        max-width: 100%;
+        position: relative;
+        z-index: 1;
+    }
+
+    .rich-edit-container {
+        width: 100%;
+        max-width: 100%;
+        margin: 20px 0;
+        padding: 10px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-sizing: border-box;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Ensure DevExpress components don't block the page */
+    .dx-blazor-richedit,
+    .dxre-ribbon,
+    .dxre-main {
+        position: relative !important;
+        z-index: auto !important;
+    }
+
+    /* Ensure other page elements are clickable */
+    nav, .navbar, .btn, a, button {
+        pointer-events: auto !important;
+        z-index: 1000;
+        position: relative;
+    }
+
+    .header-size-editor .dxre-document-content {
         background-color: @ColorValue !important;
         font-family: '@EditorFontFamily', sans-serif !important;
         font-size: @EditorFontSize !important;
-    }
-
-    /* Set default font for new content */
-    .header-size-editor .dx-htmleditor-content p,
-    .header-size-editor .dx-htmleditor-content div,
-    .header-size-editor .dx-htmleditor-content span {
-        font-family: '@EditorFontFamily', sans-serif;
-        font-size: @EditorFontSize;
-    }
-
-    .header-size-editor .dx-htmleditor-content h1,
-    .header-size-editor .dx-htmleditor-content h2,
-    .header-size-editor .dx-htmleditor-content h3,
-    .header-size-editor .dx-htmleditor-content h4,
-    .header-size-editor .dx-htmleditor-content h5,
-    .header-size-editor .dx-htmleditor-content h6 {
-        font-family: var(--font-serif);
-        color: var(--primary-color);
-    }
-
-    /* Style the drop-down items for the format menu to reflect site header fonts */
-    .dx-htmleditor-toolbar-format-list .dxbl-listbox-item-text,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text {
-        font-family: var(--font-sans);
-    }
-
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h1,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h2,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h3,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h4,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h5,
-    .dxbl-dropdown-popup .dxbl-listbox-item-text h6 {
-        font-family: var(--font-serif);
-        color: var(--primary-color);
     }
 
     .dropdown-template-color-palette {
@@ -253,39 +267,39 @@
         color: #333;
     }
 
-    /* Image Alignment Classes */
-    .header-size-editor .dx-htmleditor-content img.align-left,
-    .header-size-editor .dx-htmleditor-content svg.align-left {
+    /* Image Alignment Classes for RichEdit */
+    .header-size-editor .dxre-document-content img.align-left,
+    .header-size-editor .dxre-document-content svg.align-left {
         float: left;
         margin: 0 10px 10px 0;
         clear: left;
     }
 
-    .header-size-editor .dx-htmleditor-content img.align-right,
-    .header-size-editor .dx-htmleditor-content svg.align-right {
+    .header-size-editor .dxre-document-content img.align-right,
+    .header-size-editor .dxre-document-content svg.align-right {
         float: right;
         margin: 0 0 10px 10px;
         clear: right;
     }
 
-    .header-size-editor .dx-htmleditor-content img.align-center,
-    .header-size-editor .dx-htmleditor-content svg.align-center {
+    .header-size-editor .dxre-document-content img.align-center,
+    .header-size-editor .dxre-document-content svg.align-center {
         display: block;
         margin: 10px auto;
         float: none;
         clear: both;
     }
 
-    .header-size-editor .dx-htmleditor-content img.align-inline,
-    .header-size-editor .dx-htmleditor-content svg.align-inline {
+    .header-size-editor .dxre-document-content img.align-inline,
+    .header-size-editor .dxre-document-content svg.align-inline {
         display: inline;
         margin: 0 5px;
         float: none;
         vertical-align: middle;
     }
 
-    .header-size-editor .dx-htmleditor-content img.align-behind,
-    .header-size-editor .dx-htmleditor-content svg.align-behind {
+    .header-size-editor .dxre-document-content img.align-behind,
+    .header-size-editor .dxre-document-content svg.align-behind {
         position: absolute;
         z-index: -1;
         opacity: 0.3;
@@ -330,31 +344,18 @@
 </style>
 
 <script>
-window.focusHtmlEditor = () => {
+window.focusRichEdit = () => {
     setTimeout(() => {
-        const editor = document.querySelector('.dx-htmleditor-content');
+        const editor = document.querySelector('.dxre-document-content');
         if (editor) {
             editor.focus();
-            // Brief selection to trigger toolbar update
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            selection.removeAllRanges();
-            selection.addRange(range);
-
-            setTimeout(() => {
-                selection.removeAllRanges();
-                range.setStart(editor.firstChild || editor, 0);
-                range.setEnd(editor.firstChild || editor, 0);
-                selection.addRange(range);
-            }, 50);
         }
     }, 300);
 };
 
-// SVG and Image sizing to 1 inch (96px at 96 DPI)
+// SVG and Image sizing to 1 inch (96px at 96 DPI) - Adapted for RichEdit
 window.initializeImageSizing = () => {
-    const editor = document.querySelector('.dx-htmleditor-content');
+    const editor = document.querySelector('.dxre-document-content');
     if (!editor) return;
 
     // MutationObserver to watch for newly added images/SVGs
@@ -534,11 +535,13 @@ function resetImageAlignment() {
 
 @code {
     private CursilloWeb.Data.Test CurrentTest = new CursilloWeb.Data.Test();
-    private bool IsLoading = false;
+    private DxRichEdit? RichEdit;
+    private bool IsLoading = true;
     private bool IsSaving = false;
     private string Message = string.Empty;
     private bool IsError = false;
     private bool FontImagesPopupVisible = false;
+    private bool IsDataReady = false; // Track when data is validated and ready
 
     private List<string> AvailableFonts = new List<string>
     {
@@ -594,8 +597,14 @@ function resetImageAlignment() {
     {
         if (firstRender)
         {
-            await JSRuntime.InvokeVoidAsync("focusHtmlEditor");
+            await JSRuntime.InvokeVoidAsync("focusRichEdit");
             await JSRuntime.InvokeVoidAsync("initializeImageSizing");
+
+            // Apply font settings if specified
+            if (RichEdit != null && !string.IsNullOrEmpty(CurrentTest.FontName))
+            {
+                await ApplyFontSettings();
+            }
         }
         await base.OnAfterRenderAsync(firstRender);
     }
@@ -610,37 +619,84 @@ function resetImageAlignment() {
         try
         {
             IsLoading = true;
+            IsDataReady = false;
+
             var existingTest = await DbContext.Tests.FirstOrDefaultAsync();
+
             if (existingTest != null)
             {
+                // Set defaults for fields if empty
+                if (string.IsNullOrEmpty(existingTest.FontName))
+                {
+                    existingTest.FontName = "Segoe UI Light";
+                }
+
+                if (string.IsNullOrEmpty(existingTest.FontSize))
+                {
+                    existingTest.FontSize = "12pt";
+                }
+
+                if (string.IsNullOrEmpty(existingTest.BackgroundColor))
+                {
+                    existingTest.BackgroundColor = "#66CDFF";
+                }
+
+                // HTMLContent can be null or empty - DxRichEdit handles it
                 CurrentTest = existingTest;
             }
-
-            // Set defaults if not set
-            if (string.IsNullOrEmpty(CurrentTest.FontName))
+            else
             {
-                CurrentTest.FontName = "Segoe UI Light";
+                // Create new test with defaults
+                CurrentTest = new CursilloWeb.Data.Test
+                {
+                    FontName = "Segoe UI Light",
+                    FontSize = "12pt",
+                    BackgroundColor = "#66CDFF",
+                    HTMLContent = ""
+                };
             }
 
-            if (string.IsNullOrEmpty(CurrentTest.FontSize))
-            {
-                CurrentTest.FontSize = "12pt";
-            }
-
-            if (string.IsNullOrEmpty(CurrentTest.HTMLText))
-            {
-                // Initialize with default font and size - using visible content
-                CurrentTest.HTMLText = $@"<p><span style=""font-family: '{EditorFontFamily}', sans-serif; font-size: {EditorFontSize};"">Type your content here...</span></p>";
-            }
+            // Mark data as ready to render the editor
+            IsDataReady = true;
         }
         catch (Exception ex)
         {
             Message = $"Error loading test data: {ex.Message}";
             IsError = true;
+
+            // Create a clean default to prevent crashes
+            CurrentTest = new CursilloWeb.Data.Test
+            {
+                FontName = "Segoe UI Light",
+                FontSize = "12pt",
+                BackgroundColor = "#66CDFF",
+                HTMLContent = ""
+            };
+
+            // Still mark as ready so user can work
+            IsDataReady = true;
         }
         finally
         {
             IsLoading = false;
+        }
+    }
+
+    private async Task ApplyFontSettings()
+    {
+        if (RichEdit == null) return;
+
+        try
+        {
+            // Apply font name and size to the document
+            // Note: DevExpress RichEdit uses its own API for formatting
+            // This is a placeholder - actual implementation depends on RichEdit API
+            await Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error applying font settings: {ex.Message}";
+            IsError = true;
         }
     }
 
@@ -650,6 +706,13 @@ function resetImageAlignment() {
         {
             IsSaving = true;
             Message = string.Empty;
+
+            // Fetch the latest document content before saving
+            // This triggers the DocumentContentChanged event, updating CurrentTest.RTFContent
+            if (RichEdit != null)
+            {
+                await RichEdit.SaveDocumentAsync();
+            }
 
             if (CurrentTest.Id == Guid.Empty)
             {

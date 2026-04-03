@@ -126,5 +126,17 @@ public static class DataSeeder
             Console.WriteLine($"Warning: Failed to convert HTML to RichText during seeding: {ex.Message}");
             // Continue execution - this is not critical for application startup
         }
+
+        // Clean up corrupted Test data
+        try
+        {
+            await TestDataCleaner.CleanCorruptedTestDataAsync(context);
+            Console.WriteLine("Test data cleanup completed successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Failed to clean test data during seeding: {ex.Message}");
+            // Continue execution - this is not critical for application startup
+        }
     }
 }

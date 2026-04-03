@@ -12,7 +12,11 @@ public class Test
 
     public string? FontSize { get; set; }
 
-    public string? HTMLText { get; set; }
+    public byte[]? DocumentContent { get; set; }
+
+    public byte[]? RTFContent { get; set; }
+
+    public string? HTMLContent { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

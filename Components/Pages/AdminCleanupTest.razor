@@ -1,0 +1,139 @@
+@page "/admin/cleanup-test"
+@rendermode InteractiveServer
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Test Data Cleanup</PageTitle>
+
+<div class="container my-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Test Data Cleanup Utility
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Purpose:</strong> This utility fixes corrupted Test page data by resetting the document content to valid RTF format.
+                    </div>
+
+                    @if (IsProcessing)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                                <span class="visually-hidden">Processing...</span>
+                            </div>
+                            <p class="lead">Processing cleanup...</p>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Message))
+                    {
+                        <div class="alert @(IsError ? "alert-danger" : "alert-success")" role="alert">
+                            @Message
+                        </div>
+                    }
+
+                    @if (!IsProcessing)
+                    {
+                        <div class="d-grid gap-3">
+                            <div>
+                                <h5>Option 1: Clean Corrupted Data</h5>
+                                <p class="text-muted mb-3">
+                                    This will validate all Test records and fix any corrupted document content.
+                                    Existing valid data will be preserved.
+                                </p>
+                                <DxButton Text="Clean Corrupted Data"
+                                          RenderStyle="ButtonRenderStyle.Primary"
+                                          Click="@CleanCorruptedData"
+                                          CssClass="w-100"
+                                          IconCssClass="bi bi-tools" />
+                            </div>
+
+                            <hr />
+
+                            <div>
+                                <h5 class="text-danger">Option 2: Delete All Test Data</h5>
+                                <p class="text-muted mb-3">
+                                    <strong class="text-danger">Warning:</strong> This will permanently delete ALL Test page records.
+                                    Use this only if you want to start fresh.
+                                </p>
+                                <DxButton Text="Delete All Test Data"
+                                          RenderStyle="ButtonRenderStyle.Danger"
+                                          Click="@DeleteAllData"
+                                          CssClass="w-100"
+                                          IconCssClass="bi bi-trash" />
+                            </div>
+
+                            <hr />
+
+                            <div class="text-center">
+                                <DxButton Text="Back to Test Page"
+                                          RenderStyle="ButtonRenderStyle.Secondary"
+                                          Click="@(() => Navigation.NavigateTo("/test"))"
+                                          IconCssClass="bi bi-arrow-left" />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool IsProcessing = false;
+    private string Message = string.Empty;
+    private bool IsError = false;
+
+    private async Task CleanCorruptedData()
+    {
+        try
+        {
+            IsProcessing = true;
+            Message = string.Empty;
+
+            await TestDataCleaner.CleanCorruptedTestDataAsync(DbContext);
+
+            Message = "Test data has been cleaned successfully! All corrupted records have been fixed.";
+            IsError = false;
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error cleaning test data: {ex.Message}";
+            IsError = true;
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+
+    private async Task DeleteAllData()
+    {
+        try
+        {
+            IsProcessing = true;
+            Message = string.Empty;
+
+            await TestDataCleaner.DeleteAllTestsAsync(DbContext);
+
+            Message = "All test data has been deleted. You can now create new test records.";
+            IsError = false;
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error deleting test data: {ex.Message}";
+            IsError = true;
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
+    }
+}
