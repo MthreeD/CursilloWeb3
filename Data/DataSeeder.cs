@@ -1,4 +1,3 @@
-using CursilloWeb.Data;
 using CursilloWeb.Services;
 using Microsoft.EntityFrameworkCore;
 

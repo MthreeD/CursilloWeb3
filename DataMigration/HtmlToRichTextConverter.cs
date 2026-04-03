@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
-using CursilloWeb.Services;
+using HtmlAgilityPack;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using HtmlAgilityPack;
 
 namespace CursilloWeb.DataMigration;
 
@@ -12,7 +11,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
     public async Task ConvertAllHtmlToRichTextAsync()
     {
         await using var context = await contextFactory.CreateDbContextAsync();
-        
+
         var contentBlocks = await context.ContentBlocks
             .Where(cb => !string.IsNullOrEmpty(cb.HtmlContent) && string.IsNullOrEmpty(cb.RTFContent))
             .ToListAsync();
@@ -56,8 +55,8 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
                 content = ProcessNodes(doc.DocumentNode.ChildNodes)
             };
 
-            return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions 
-            { 
+            return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions
+            {
                 WriteIndented = false,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
@@ -234,7 +233,7 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
                 marks.Add(new { type = "underline" });
                 break;
             case "a":
-                var href = element.GetAttributeValue("href", "");
+                var href = element.GetAttributeValue("href", string.Empty);
                 marks.Add(new { type = "link", attrs = new { href } });
                 break;
         }
@@ -259,8 +258,8 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
             }
         };
 
-        return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions 
-        { 
+        return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions
+        {
             WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
@@ -268,11 +267,12 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
 
     private static string CreateBasicRichTextStructure(string? text)
     {
-        if (string.IsNullOrWhiteSpace(text)) return CreateEmptyRichTextStructure();
-        
+        if (string.IsNullOrWhiteSpace(text))
+            return CreateEmptyRichTextStructure();
+
         // Strip HTML tags for basic fallback
-        var plainText = Regex.Replace(text, "<[^>]*>", "").Trim();
-        
+        var plainText = Regex.Replace(text, "<[^>]*>", string.Empty).Trim();
+
         var richTextDocument = new
         {
             type = "doc",
@@ -289,8 +289,8 @@ public class HtmlToRichTextConverter(IDbContextFactory<ApplicationDbContext> con
             }
         };
 
-        return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions 
-        { 
+        return JsonSerializer.Serialize(richTextDocument, new JsonSerializerOptions
+        {
             WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });

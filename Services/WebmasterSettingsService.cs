@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CursilloWeb.Services;
 
@@ -50,7 +50,7 @@ public class WebmasterSettingsService(IDbContextFactory<ApplicationDbContext> co
     public async Task SaveAllSettingsAsync(List<WebmasterSetting> settings)
     {
         await using var context = await contextFactory.CreateDbContextAsync();
-        
+
         foreach (var setting in settings)
         {
             if (setting.Id == Guid.Empty)
@@ -67,7 +67,7 @@ public class WebmasterSettingsService(IDbContextFactory<ApplicationDbContext> co
                 context.WebmasterSettings.Update(setting);
             }
         }
-        
+
         await context.SaveChangesAsync();
     }
 }

@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components.Server.Circuits;
-using Microsoft.Extensions.Hosting;
 
 namespace CursilloWeb.Services;
 
@@ -50,7 +49,7 @@ public class BrowserLifecycleService
     }
 }
 
-public class ShutdownCircuitHandler : CircuitHandler
+public class ShutdownCircuitHandler :CircuitHandler
 {
     private readonly BrowserLifecycleService _lifecycleService;
 

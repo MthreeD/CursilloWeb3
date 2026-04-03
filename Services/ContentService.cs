@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
-using System.Text;
-using System.Web;
+using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Text;
 
 namespace CursilloWeb.Services;
 
@@ -517,7 +516,7 @@ public class ContentService(IDbContextFactory<ApplicationDbContext> contextFacto
     private static string ConvertHtmlToRichText(string htmlContent)
     {
         // Convert HTML to RTF format (simple conversion)
-        var plainText = System.Text.RegularExpressions.Regex.Replace(htmlContent, "<[^>]*>", "").Trim();
+        var plainText = System.Text.RegularExpressions.Regex.Replace(htmlContent, "<[^>]*>", string.Empty).Trim();
         return $@"{{\rtf1\ansi\deff0 {{\fonttbl {{\f0 Times New Roman;}}}}{{\colortbl;\red0\green0\blue0;}}\f0\fs24 {plainText}}}";
     }
 }

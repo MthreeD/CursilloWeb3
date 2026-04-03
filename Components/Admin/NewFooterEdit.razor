@@ -1,0 +1,317 @@
+@page "/admin/newfooteredit"
+@rendermode InteractiveServer
+@using DevExpress.Blazor.RichEdit
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Edit New Footer</PageTitle>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Edit New Footer</h2>
+        <a href="/admin" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="mb-4">
+            <div class="alert alert-info">
+                Use the editor below to customize the new footer content.
+            </div>
+
+            <DxRichEdit DocumentContent="@FooterContent.RTFContent"
+                        @ref="richEdit"
+                        Height="600px" 
+                        CssClass="w-100"
+                       
+                        DocumentFormat="DocumentFormat.Rtf"
+                        BarMode="BarMode.Ribbon"
+                        @key="@FooterContent.Id">
+                <RibbonSettings>
+                    <DxRichEditRibbon />
+                </RibbonSettings>
+            </DxRichEdit>
+
+            @* Debug output - remove after testing *@
+            <div class="mt-2">
+                <small class="text-muted">
+                    Content length: @(FooterContent.RTFContent?.Length ?? 0) bytes
+                </small>
+            </div>
+        </div>
+
+        <DxButton Text="Save" 
+                  RenderStyle="ButtonRenderStyle.Primary"
+                  Click="@SaveContent"
+                  Enabled="@(!IsSaving)">
+        </DxButton>
+
+        @if (IsSaving)
+        {
+            <span class="ms-2">
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                Saving...
+            </span>
+        }
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert @StatusClass mt-3">
+                @StatusMessage
+            </div>
+        }
+
+        @* Debug Messages Panel *@
+        <div class="card mt-4">
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Debug Messages</h5>
+                <button class="btn btn-sm btn-outline-light" @onclick="ClearDebugMessages">Clear</button>
+            </div>
+            <div class="card-body bg-light" style="max-height: 400px; overflow-y: auto;">
+                @if (DebugMessages.Count == 0)
+                {
+                    <p class="text-muted">No debug messages yet. Type in the editor and click Save to see what happens.</p>
+                }
+                else
+                {
+                    <div style="font-family: 'Courier New', monospace; font-size: 12px;">
+                        @foreach (var msg in DebugMessages)
+                        {
+                            <div class="mb-1" style="white-space: pre-wrap; word-wrap: break-word;">
+                                <span class="text-muted">[@msg.Timestamp.ToString("HH:mm:ss.fff")]</span>
+                                <span class="@(msg.IsError ? "text-danger" : msg.IsWarning ? "text-warning" : "text-dark")">@msg.Message</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DxRichEdit? richEdit;
+    private NewFooterContent FooterContent = new NewFooterContent();
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private string StatusMessage = "";
+    private string StatusClass = "alert-success";
+    private bool IsNewEntry = false;
+
+    // Debug messages
+    private List<DebugMessage> DebugMessages = new List<DebugMessage>();
+
+    private class DebugMessage
+    {
+        public DateTime Timestamp { get; set; }
+        public string Message { get; set; } = "";
+        public bool IsError { get; set; }
+        public bool IsWarning { get; set; }
+    }
+
+    private void LogDebug(string message, bool isError = false, bool isWarning = false)
+    {
+        DebugMessages.Add(new DebugMessage 
+        { 
+            Timestamp = DateTime.Now, 
+            Message = message,
+            IsError = isError,
+            IsWarning = isWarning
+        });
+        Console.WriteLine(message); // Also log to browser console
+        StateHasChanged(); // Update UI
+    }
+
+    private void ClearDebugMessages()
+    {
+        DebugMessages.Clear();
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadContent();
+    }
+
+    private async Task LoadContent()
+    {
+        try
+        {
+            IsLoading = true;
+            StatusMessage = "";
+
+            // Get existing content with no tracking to avoid conflicts
+            var existingContent = await DbContext.NewFooterContents
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (existingContent != null)
+            {
+                FooterContent = existingContent;
+                IsNewEntry = false;
+
+                // Ensure RTFContent is not null
+                if (FooterContent.RTFContent == null || FooterContent.RTFContent.Length == 0)
+                {
+                    FooterContent.RTFContent = CreateDefaultRtfContent();
+                }
+            }
+            else
+            {
+                // Create new entry with default RTF content
+                FooterContent = new NewFooterContent
+                {
+                    Id = Guid.NewGuid(),
+                    RTFContent = CreateDefaultRtfContent(),
+                    CreatedAt = DateTime.Now,
+                    LastUpdated = DateTime.Now
+                };
+                IsNewEntry = true;
+            }
+
+            LogDebug($"Loaded content - IsNewEntry: {IsNewEntry}, RTFContent length: {FooterContent.RTFContent?.Length ?? 0}");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading content: {ex.Message}";
+            StatusClass = "alert-danger";
+            LogDebug($"Error loading: {ex}", isError: true);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private byte[] CreateDefaultRtfContent()
+    {
+        // Create simple RTF document
+        string rtfContent = @"{\rtf1\ansi\deff0 {\fonttbl {\f0 Arial;}}
+\f0\fs24 Type your new footer content here...}";
+        return System.Text.Encoding.UTF8.GetBytes(rtfContent);
+    }
+
+    private async Task SaveContent()
+    {
+        try
+        {
+            LogDebug("=== BEFORE EXPORT ===");
+            LogDebug($"FooterContent.RTFContent length (before export): {FooterContent.RTFContent?.Length ?? 0}");
+
+            // ✅ CRITICAL: Export the current document content from DxRichEdit
+            if (richEdit != null)
+            {
+                LogDebug("Exporting document content from DxRichEdit...");
+                FooterContent.RTFContent = await richEdit.ExportDocumentAsync(DocumentFormat.Rtf);
+                LogDebug($"Exported RTFContent length: {FooterContent.RTFContent?.Length ?? 0}");
+            }
+            else
+            {
+                LogDebug("WARNING: richEdit is null!", isWarning: true);
+            }
+
+            // CRITICAL: Check if content is actually there
+            if (FooterContent.RTFContent == null || FooterContent.RTFContent.Length == 0)
+            {
+                LogDebug("WARNING: RTFContent is null or empty after export!", isWarning: true);
+            }
+
+            IsSaving = true;
+            StatusMessage = "";
+            await InvokeAsync(StateHasChanged);
+
+            LogDebug("=== DURING SAVE ===");
+            LogDebug($"FooterContent.Id: {FooterContent.Id}");
+            LogDebug($"IsNewEntry: {IsNewEntry}");
+            LogDebug($"RTFContent length: {FooterContent.RTFContent?.Length ?? 0}");
+
+            // Update timestamp
+            FooterContent.LastUpdated = DateTime.Now;
+
+            if (IsNewEntry)
+            {
+                // Add new entry
+                FooterContent.CreatedAt = DateTime.Now;
+                LogDebug($"Adding NEW entry with RTFContent length: {FooterContent.RTFContent?.Length ?? 0}");
+                DbContext.NewFooterContents.Add(FooterContent);
+            }
+            else
+            {
+                // Update existing
+                LogDebug("Updating EXISTING entry");
+                LogDebug($"RTFContent length being saved: {FooterContent.RTFContent?.Length ?? 0}");
+
+                DbContext.Entry(FooterContent).Property(x => x.RTFContent).IsModified = true;
+                DbContext.Entry(FooterContent).Property(x => x.LastUpdated).IsModified = true;
+            }
+
+            // Show what EF thinks is being saved
+            var entries = DbContext.ChangeTracker.Entries<NewFooterContent>().ToList();
+            LogDebug($"Number of tracked entities: {entries.Count}");
+            foreach (var entry in entries)
+            {
+                LogDebug($"Entity State: {entry.State}");
+                LogDebug($"Entity Id: {entry.Entity.Id}");
+                LogDebug($"Entity RTFContent length: {entry.Entity.RTFContent?.Length ?? 0}");
+            }
+
+            var rowsAffected = await DbContext.SaveChangesAsync();
+            LogDebug($"Rows affected: {rowsAffected}");
+
+            // Verify it was saved by re-querying
+            var savedEntity = await DbContext.NewFooterContents
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == FooterContent.Id);
+
+            if (savedEntity != null)
+            {
+                LogDebug("=== VERIFICATION ===");
+                LogDebug($"Re-queried entity RTFContent length: {savedEntity.RTFContent?.Length ?? 0}");
+
+                // Show first 100 bytes as text
+                if (savedEntity.RTFContent != null && savedEntity.RTFContent.Length > 0)
+                {
+                    string preview = System.Text.Encoding.UTF8.GetString(savedEntity.RTFContent, 0, Math.Min(100, savedEntity.RTFContent.Length));
+                    LogDebug($"First 100 bytes: {preview}");
+                }
+            }
+            else
+            {
+                LogDebug("ERROR: Could not re-query the entity!", isError: true);
+            }
+
+            // After first save, it's no longer a new entry
+            IsNewEntry = false;
+
+            StatusMessage = "New footer content saved successfully!";
+            StatusClass = "alert-success";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error saving content: {ex.Message}";
+            StatusClass = "alert-danger";
+            LogDebug("=== ERROR SAVING ===", isError: true);
+            LogDebug($"Exception: {ex}", isError: true);
+            LogDebug($"Stack trace: {ex.StackTrace}", isError: true);
+            if (ex.InnerException != null)
+            {
+                LogDebug($"Inner exception: {ex.InnerException.Message}", isError: true);
+            }
+        }
+        finally
+        {
+            IsSaving = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+}

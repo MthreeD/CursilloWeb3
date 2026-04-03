@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CursilloWeb.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260402150107_AddFontNameAndFontSizeToTest")]
-    partial class AddFontNameAndFontSizeToTest
+    [Migration("20260403205849_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,71 @@ namespace CursilloWeb.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("CursilloWeb.Data.ApplicationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("ShowAdminCleanupTestPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowArticleDetailsPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowCounterPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowDashboardPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowDebugPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowDebuggingPages")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowFileUploadPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowHomePage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowManageArticlePage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowManageContentPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowManageFooterPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowNewFooterEditPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowTest2Page")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowTestPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowWeatherPage")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("ShowWebmasterSettingsPage")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ApplicationSettings");
+                });
 
             modelBuilder.Entity("CursilloWeb.Data.Article", b =>
                 {
@@ -80,7 +145,7 @@ namespace CursilloWeb.Migrations
                     b.ToTable("ContentBlocks");
                 });
 
-            modelBuilder.Entity("CursilloWeb.Data.Test", b =>
+            modelBuilder.Entity("CursilloWeb.Data.NewFooterContent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -89,20 +154,49 @@ namespace CursilloWeb.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<byte[]>("HTMLcode")
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RTFContent")
+                        .HasColumnType("varbinary(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NewFooterContents");
+                });
+
+            modelBuilder.Entity("CursilloWeb.Data.Test", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BackgroundColor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("DocumentContent")
+                        .HasColumnType("varbinary(max)");
+
                     b.Property<string>("FontName")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FontSize")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("HtmlTest")
+                    b.Property<string>("HTMLContent")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("LastUpdated")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("TextBoxText")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<byte[]>("RTFContent")
+                        .HasColumnType("varbinary(max)");
 
                     b.HasKey("Id");
 

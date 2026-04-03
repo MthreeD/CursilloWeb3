@@ -1,0 +1,339 @@
+@page "/admin/settings"
+@rendermode InteractiveServer
+@using CursilloWeb.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Application Settings</PageTitle>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Application Settings</h2>
+        <a href="/admin" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info mb-4">
+            <i class="bi bi-info-circle me-2"></i>
+            Configure application-wide settings and page visibility below.
+        </div>
+
+        @* Global Settings Section *@
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-gear-fill me-2"></i>Global Settings</h5>
+            </div>
+            <div class="card-body">
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="showDebugging" 
+                           @bind="AppSettings.ShowDebuggingPages">
+                    <label class="form-check-label fw-bold" for="showDebugging">
+                        Show Debugging Pages
+                    </label>
+                    <div class="form-text">Enable debug and test pages in navigation</div>
+                </div>
+            </div>
+        </div>
+
+        @* Public Pages Section *@
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-house-door-fill me-2"></i>Public Pages</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showHome" 
+                                   @bind="AppSettings.ShowHomePage">
+                            <label class="form-check-label" for="showHome">
+                                Home Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showArticleDetails" 
+                                   @bind="AppSettings.ShowArticleDetailsPage">
+                            <label class="form-check-label" for="showArticleDetails">
+                                Article Details Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showCounter" 
+                                   @bind="AppSettings.ShowCounterPage">
+                            <label class="form-check-label" for="showCounter">
+                                Counter Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showWeather" 
+                                   @bind="AppSettings.ShowWeatherPage">
+                            <label class="form-check-label" for="showWeather">
+                                Weather Page
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showFileUpload" 
+                                   @bind="AppSettings.ShowFileUploadPage">
+                            <label class="form-check-label" for="showFileUpload">
+                                File Upload Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showWebmasterSettings" 
+                                   @bind="AppSettings.ShowWebmasterSettingsPage">
+                            <label class="form-check-label" for="showWebmasterSettings">
+                                Webmaster Settings Page
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Debug/Test Pages Section *@
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <h5 class="mb-0"><i class="bi bi-bug-fill me-2"></i>Debug & Test Pages</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showTest" 
+                                   @bind="AppSettings.ShowTestPage">
+                            <label class="form-check-label" for="showTest">
+                                Test Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showTest2" 
+                                   @bind="AppSettings.ShowTest2Page">
+                            <label class="form-check-label" for="showTest2">
+                                Test2 Page
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showDebug" 
+                                   @bind="AppSettings.ShowDebugPage">
+                            <label class="form-check-label" for="showDebug">
+                                Debug Page
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showAdminCleanup" 
+                                   @bind="AppSettings.ShowAdminCleanupTestPage">
+                            <label class="form-check-label" for="showAdminCleanup">
+                                Admin Cleanup Test Page
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Admin Pages Section *@
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0"><i class="bi bi-shield-lock-fill me-2"></i>Admin Pages</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showDashboard" 
+                                   @bind="AppSettings.ShowDashboardPage">
+                            <label class="form-check-label" for="showDashboard">
+                                Dashboard
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showManageArticle" 
+                                   @bind="AppSettings.ShowManageArticlePage">
+                            <label class="form-check-label" for="showManageArticle">
+                                Manage Article
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showManageContent" 
+                                   @bind="AppSettings.ShowManageContentPage">
+                            <label class="form-check-label" for="showManageContent">
+                                Manage Content
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showManageFooter" 
+                                   @bind="AppSettings.ShowManageFooterPage">
+                            <label class="form-check-label" for="showManageFooter">
+                                Manage Footer
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="showNewFooterEdit" 
+                                   @bind="AppSettings.ShowNewFooterEditPage">
+                            <label class="form-check-label" for="showNewFooterEdit">
+                                New Footer Edit
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Action Buttons *@
+        <div class="d-flex gap-2 mb-4">
+            <DxButton Text="Save Settings" 
+                      RenderStyle="ButtonRenderStyle.Primary"
+                      IconCssClass="bi bi-save"
+                      Click="@SaveSettings"
+                      Enabled="@(!IsSaving)"
+                      CssClass="px-4" />
+
+            <DxButton Text="Return to Main Menu" 
+                      RenderStyle="ButtonRenderStyle.Secondary"
+                      IconCssClass="bi bi-house"
+                      Click="@(() => Navigation.NavigateTo("/"))"
+                      CssClass="px-4" />
+
+            @if (IsSaving)
+            {
+                <span class="ms-2 align-self-center">
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                    Saving...
+                </span>
+            }
+        </div>
+
+        @* Status Message *@
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert @StatusClass alert-dismissible fade show" role="alert">
+                <i class="@(IsError ? "bi bi-exclamation-triangle-fill" : "bi bi-check-circle-fill") me-2"></i>
+                @StatusMessage
+                <button type="button" class="btn-close" @onclick="@(() => StatusMessage = string.Empty)"></button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private ApplicationSettings AppSettings = new ApplicationSettings();
+    private bool IsLoading = true;
+    private bool IsSaving = false;
+    private string StatusMessage = "";
+    private string StatusClass = "alert-success";
+    private bool IsError = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        try
+        {
+            IsLoading = true;
+
+            // Get existing settings or create default
+            var existingSettings = await DbContext.ApplicationSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+
+            if (existingSettings != null)
+            {
+                AppSettings = existingSettings;
+            }
+            else
+            {
+                // Create default settings
+                AppSettings = new ApplicationSettings
+                {
+                    Id = Guid.NewGuid(),
+                    ShowDebuggingPages = false,
+                    ShowHomePage = true,
+                    ShowArticleDetailsPage = true,
+                    ShowCounterPage = true,
+                    ShowWeatherPage = true,
+                    ShowFileUploadPage = true,
+                    ShowWebmasterSettingsPage = true,
+                    ShowDashboardPage = true,
+                    ShowManageArticlePage = true,
+                    ShowManageContentPage = true,
+                    ShowManageFooterPage = true,
+                    ShowNewFooterEditPage = true,
+                    CreatedAt = DateTime.Now,
+                    LastUpdated = DateTime.Now
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error loading settings: {ex.Message}";
+            StatusClass = "alert-danger";
+            IsError = true;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task SaveSettings()
+    {
+        try
+        {
+            IsSaving = true;
+            StatusMessage = "";
+
+            AppSettings.LastUpdated = DateTime.Now;
+
+            // Check if settings exist in database
+            var existingSettings = await DbContext.ApplicationSettings
+                .FirstOrDefaultAsync(s => s.Id == AppSettings.Id);
+
+            if (existingSettings == null)
+            {
+                // Add new settings
+                AppSettings.CreatedAt = DateTime.Now;
+                DbContext.ApplicationSettings.Add(AppSettings);
+            }
+            else
+            {
+                // Update existing settings
+                DbContext.Entry(existingSettings).CurrentValues.SetValues(AppSettings);
+            }
+
+            await DbContext.SaveChangesAsync();
+
+            StatusMessage = "Settings saved successfully!";
+            StatusClass = "alert-success";
+            IsError = false;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error saving settings: {ex.Message}";
+            StatusClass = "alert-danger";
+            IsError = true;
+        }
+        finally
+        {
+            IsSaving = false;
+        }
+    }
+}

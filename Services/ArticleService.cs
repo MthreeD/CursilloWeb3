@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CursilloWeb.Services;
 

@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Components;
 using CursilloWeb.Data;
 using CursilloWeb.Services;
+using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,7 +39,7 @@ using (var scope = app.Services.CreateScope())
 {
     // First fix any database data issues
     var dbFixService = scope.ServiceProvider.GetRequiredService<DatabaseFixService>();
-    try 
+    try
     {
         Console.WriteLine("Checking for database issues...");
         var diagnosis = await dbFixService.DiagnoseContentBlocksAsync();

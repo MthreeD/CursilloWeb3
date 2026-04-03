@@ -6,11 +6,40 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace CursilloWeb.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "ApplicationSettings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ShowDebuggingPages = table.Column<bool>(type: "bit", nullable: false),
+                    ShowHomePage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowArticleDetailsPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowCounterPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowWeatherPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowTestPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowTest2Page = table.Column<bool>(type: "bit", nullable: false),
+                    ShowDebugPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowAdminCleanupTestPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowFileUploadPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowWebmasterSettingsPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowDashboardPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowManageArticlePage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowManageContentPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowManageFooterPage = table.Column<bool>(type: "bit", nullable: false),
+                    ShowNewFooterEditPage = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ApplicationSettings", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Articles",
                 columns: table => new
@@ -44,12 +73,31 @@ namespace CursilloWeb.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "NewFooterContents",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RTFContent = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    HTMLcode = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewFooterContents", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Tests",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TextBoxText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    HtmlTest = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    BackgroundColor = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FontName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FontSize = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DocumentContent = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    RTFContent = table.Column<byte[]>(type: "varbinary(max)", nullable: true),
+                    HTMLContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -79,10 +127,16 @@ namespace CursilloWeb.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ApplicationSettings");
+
+            migrationBuilder.DropTable(
                 name: "Articles");
 
             migrationBuilder.DropTable(
                 name: "ContentBlocks");
+
+            migrationBuilder.DropTable(
+                name: "NewFooterContents");
 
             migrationBuilder.DropTable(
                 name: "Tests");

@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using CursilloWeb.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CursilloWeb.Services;
 
@@ -18,7 +18,7 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
         try
         {
             Console.WriteLine("Starting ContentBlocks database fix...");
-            
+
             // Step 1: Create a backup table
             await context.Database.ExecuteSqlRawAsync(@"
                 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[ContentBlocks_Backup]') AND type in (N'U'))
@@ -43,7 +43,7 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
 
             // Step 3: Drop and recreate table with clean schema
             await context.Database.ExecuteSqlRawAsync("DROP TABLE ContentBlocks;");
-            
+
             await context.Database.ExecuteSqlRawAsync(@"
                 CREATE TABLE ContentBlocks (
                     Id uniqueidentifier NOT NULL PRIMARY KEY DEFAULT NEWID(),
@@ -69,14 +69,14 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
             throw;
         }
     }
-    
+
     /// <summary>
     /// Diagnose the current state of the ContentBlocks table
     /// </summary>
     public async Task<string> DiagnoseContentBlocksAsync()
     {
         await using var context = await contextFactory.CreateDbContextAsync();
-        
+
         try
         {
             // Check table structure
@@ -90,14 +90,14 @@ public class DatabaseFixService(IDbContextFactory<ApplicationDbContext> contextF
                     WHERE TABLE_NAME = 'ContentBlocks'
                     ORDER BY ORDINAL_POSITION")
                 .ToListAsync();
-                
+
             var columnInfo = string.Join("\n", columns.Select(c => $"  {c.Name}: {c.Type} ({(c.IsNullable == "YES" ? "nullable" : "not null")})"));
-            
+
             // Check data
             var recordCount = await context.Database
                 .SqlQuery<int>($"SELECT COUNT(*) as Value FROM ContentBlocks")
                 .FirstOrDefaultAsync();
-                
+
             return $@"ContentBlocks Table Diagnosis:
 
 Table Structure:
